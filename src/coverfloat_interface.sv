@@ -8,13 +8,13 @@ interface coverfloat_interface; import coverfloat_pkg::*;
 
     logic [31:0]  rm;
 
-    logic [31:0]  enableBits;
+    logic [31:0]  enableBits; // legacy, not required for riscv TODO: consider having coverage based on these as a config option
     
     logic [127:0] a,    b,    c;
-    logic [2:0]   aFmt, bFmt, cFmt; // 000 = half; 001 = float; 010 = double; 011 = quad; 100 = int; 101 = long
+    logic [7:0]   aFmt, bFmt, cFmt; 
 
     logic [127:0] result;
-    logic [2:0]   resultFmt;
+    logic [7:0]   resultFmt;
 
     logic [31:0]  exceptionBits;
 
