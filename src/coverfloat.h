@@ -1,6 +1,9 @@
 #ifndef COVERFLOAT_H_INCLUDED
 #define COVERFLOAT_H_INCLUDED
 
+#include <stdint.h>
+#include "softfloat.h"
+
 /*
 typedef enum {
     OP_ADD   = 1,
@@ -93,8 +96,10 @@ coverfloat128_t coverfloat128Ref (uint32_t op, float128_t a, float128_t b, float
 
 void softFloat_clearFlags( uint_fast8_t );
 
-int softFloat_getFlags ();
+uint_fast8_t softFloat_getFlags ();
 
-void softFloat_setRoundingMode ();
+void softFloat_setRoundingMode ( uint_fast8_t );
+
+void softfloat_getIntermResults ( intermResults_t * );
 
 #endif

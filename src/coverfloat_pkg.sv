@@ -80,7 +80,7 @@ package coverfloat_pkg;
     import "DPI-C" function automatic int  softFloat_getFlags ();
     import "DPI-C" function automatic void softFloat_clearFlags (unsigned byte);
     import "DPI-C" function automatic void softFloat_setRoundingMode (); 
-    import "DPI-C" function automatic void getIntermediateResult (output intmermResult_t interm);
+    import "DPI-C" function automatic void softfloat_getIntermResults (output intmermResult_t interm);
 
     `include dpic_imports.svh
 
