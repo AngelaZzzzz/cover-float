@@ -296,7 +296,7 @@ int main(int argc, char *argv[]) {
 
         // printf("INTERM SIG IS %016x\n\n", intermRes.sig64);
 
-        confirm softfloat output matches testvectors
+        // confirm softfloat output matches testvectors
         if (res.upper   != newRes.upper   || res.lower   != newRes.lower ||     // outputs don't match
             flags != newFlags                                              ) {  // flags   don't match
             fprintf(stderr, "Error: testvector output doesn't match expected value\nTestVector output: %016x%016x\nExpected output: %016x%016x\nTestVector Flags: %02x\nExpected Flags: %02x\n", 
