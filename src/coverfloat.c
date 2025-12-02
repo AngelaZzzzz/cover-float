@@ -631,7 +631,7 @@ void reference_model( const uint32_t       * op,
                     break;
                 }
 
-                // TODO: Missing softfloat function
+                // NOTE: Missing softfloat function, added custom
                 case FMT_QUAD: {
                     float128_t af, bf, resultf;
                     UINT128_TO_FLOAT128(af, a);
@@ -664,7 +664,167 @@ void reference_model( const uint32_t       * op,
             break;
         }
 
-        /* TODO: Sign injection instructions */
+        case OP_FSGNJ: {
+            
+            switch (*operandFmt) {
+                case FMT_SINGLE: {
+                    float32_t af, bf, resultf;
+                    UINT128_TO_FLOAT32(af, a);
+                    UINT128_TO_FLOAT32(bf, b);
+                    resultf.v = (af.v & 0x7FFFFFFF) | (bf.v & 0x80000000);
+                    FLOAT32_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_DOUBLE: {
+                    float64_t af, bf, resultf;
+                    UINT128_TO_FLOAT64(af, a);
+                    UINT128_TO_FLOAT64(bf, b);
+                    resultf.v = (af.v & 0x7FFFFFFFFFFFFFFF) | (bf.v & 0x8000000000000000);
+                    FLOAT64_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_QUAD: {
+                    float128_t af, bf, resultf;
+                    UINT128_TO_FLOAT128(af, a);
+                    UINT128_TO_FLOAT128(bf, b);
+                    resultf.v[0] = (af.v[0] & 0x7FFFFFFFFFFFFFFF) | (bf.v[0] & 0x8000000000000000);
+                    resultf.v[1] = af.v[1];
+                    FLOAT128_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_HALF: {
+                    float16_t af, bf, resultf;
+                    UINT128_TO_FLOAT16(af, a);
+                    UINT128_TO_FLOAT16(bf, b);
+                    resultf.v = (af.v & 0x7FFF) | (bf.v & 0x8000);
+                    FLOAT16_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_BF16: {
+                    float16_t af, bf, resultf;
+                    UINT128_TO_FLOAT16(af, a);
+                    UINT128_TO_FLOAT16(bf, b);
+                    resultf.v = (af.v & 0x7FFF) | (bf.v & 0x8000);
+                    FLOAT16_TO_UINT128(result, resultf);
+                    break;
+                }
+
+            }
+
+            break;
+        }
+
+        case OP_FSGNJN: {
+            
+            switch (*operandFmt) {
+                case FMT_SINGLE: {
+                    float32_t af, bf, resultf;
+                    UINT128_TO_FLOAT32(af, a);
+                    UINT128_TO_FLOAT32(bf, b);
+                    resultf.v = (af.v & 0x7FFFFFFF) | ~(bf.v & 0x80000000);
+                    FLOAT32_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_DOUBLE: {
+                    float64_t af, bf, resultf;
+                    UINT128_TO_FLOAT64(af, a);
+                    UINT128_TO_FLOAT64(bf, b);
+                    resultf.v = (af.v & 0x7FFFFFFFFFFFFFFF) | ~(bf.v & 0x8000000000000000);
+                    FLOAT64_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_QUAD: {
+                    float128_t af, bf, resultf;
+                    UINT128_TO_FLOAT128(af, a);
+                    UINT128_TO_FLOAT128(bf, b);
+                    resultf.v[0] = (af.v[0] & 0x7FFFFFFFFFFFFFFF) | ~(bf.v[0] & 0x8000000000000000);
+                    resultf.v[1] = af.v[1];
+                    FLOAT128_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_HALF: {
+                    float16_t af, bf, resultf;
+                    UINT128_TO_FLOAT16(af, a);
+                    UINT128_TO_FLOAT16(bf, b);
+                    resultf.v = (af.v & 0x7FFF) | ~(bf.v & 0x8000);
+                    FLOAT16_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_BF16: {
+                    float16_t af, bf, resultf;
+                    UINT128_TO_FLOAT16(af, a);
+                    UINT128_TO_FLOAT16(bf, b);
+                    resultf.v = (af.v & 0x7FFF) | ~(bf.v & 0x8000);
+                    FLOAT16_TO_UINT128(result, resultf);
+                    break;
+                }
+
+            }
+
+            break;
+        }
+
+        case OP_FSGNJX: {
+            
+            switch (*operandFmt) {
+                case FMT_SINGLE: {
+                    float32_t af, bf, resultf;
+                    UINT128_TO_FLOAT32(af, a);
+                    UINT128_TO_FLOAT32(bf, b);
+                    resultf.v = (af.v & 0x7FFFFFFF) | ((af.v ^ bf.v) & 0x80000000);
+                    FLOAT32_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_DOUBLE: {
+                    float64_t af, bf, resultf;
+                    UINT128_TO_FLOAT64(af, a);
+                    UINT128_TO_FLOAT64(bf, b);
+                    resultf.v = (af.v & 0x7FFFFFFFFFFFFFFF) | ((af.v ^ bf.v) & 0x8000000000000000);
+                    FLOAT64_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_QUAD: {
+                    float128_t af, bf, resultf;
+                    UINT128_TO_FLOAT128(af, a);
+                    UINT128_TO_FLOAT128(bf, b);
+                    resultf.v[0] = (af.v[0] & 0x7FFFFFFFFFFFFFFF) | ((af.v[0] ^ bf.v[0]) & 0x8000000000000000);
+                    resultf.v[1] = af.v[1];
+                    FLOAT128_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_HALF: {
+                    float16_t af, bf, resultf;
+                    UINT128_TO_FLOAT16(af, a);
+                    UINT128_TO_FLOAT16(bf, b);
+                    resultf.v = (af.v & 0x7FFF) | ((af.v ^ bf.v) & 0x8000);
+                    FLOAT16_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_BF16: {
+                    float16_t af, bf, resultf;
+                    UINT128_TO_FLOAT16(af, a);
+                    UINT128_TO_FLOAT16(bf, b);
+                    resultf.v = (af.v & 0x7FFF) | ((af.v ^ bf.v) & 0x8000);
+                    FLOAT16_TO_UINT128(result, resultf);
+                    break;
+                }
+
+            }
+
+            break;
+        }
 
         /* TODO: float to int instructions */
 
@@ -794,7 +954,7 @@ void reference_model( const uint32_t       * op,
                     float128_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT128(af, a);
                     UINT128_TO_FLOAT128(bf, b);
-                    UINT128_TO_FLOAT128(bf, c);
+                    UINT128_TO_FLOAT128(cf, c);
                     resultf = f128_mulAdd(af, bf, cf);
                     FLOAT128_TO_UINT128(result, resultf);
                     break;
@@ -814,7 +974,7 @@ void reference_model( const uint32_t       * op,
                     float16_t af, bf, cf, resultf;
                     UINT128_TO_FLOAT16(af, a);
                     UINT128_TO_FLOAT16(bf, b);
-                    UINT128_TO_FLOAT16(bf, c);
+                    UINT128_TO_FLOAT16(cf, c);
                     resultf = bf16_mulAdd(af, bf, cf);
                     FLOAT16_TO_UINT128(result, resultf);
                     break;
@@ -825,7 +985,199 @@ void reference_model( const uint32_t       * op,
             break;
         }
 
-        /* TODO: other FMA style instructions */
+        case OP_FMSUB: {
+            
+            switch (*operandFmt) {
+                case FMT_SINGLE: {
+                    float32_t af, bf, cf, resultf;
+                    UINT128_TO_FLOAT32(af, a);
+                    UINT128_TO_FLOAT32(bf, b);
+                    UINT128_TO_FLOAT32(cf, b);
+                    cf.v ^= 0x80000000; // flip sign
+                    resultf = f32_mulAdd(af, bf, cf);
+                    FLOAT32_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_DOUBLE: {
+                    float64_t af, bf, cf, resultf;
+                    UINT128_TO_FLOAT64(af, a);
+                    UINT128_TO_FLOAT64(bf, b);
+                    UINT128_TO_FLOAT64(cf, b);
+                    cf.v ^= 0x8000000000000000; // flip sign
+                    resultf = f64_mulAdd(af, bf, cf);
+                    FLOAT64_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_QUAD: {
+                    float128_t af, bf, cf, resultf;
+                    UINT128_TO_FLOAT128(af, a);
+                    UINT128_TO_FLOAT128(bf, b);
+                    UINT128_TO_FLOAT128(cf, c);
+                    cf.v[0] ^= 0x8000000000000000; // flip sign
+                    resultf = f128_mulAdd(af, bf, cf);
+                    FLOAT128_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_HALF: {
+                    float16_t af, bf, cf, resultf;
+                    UINT128_TO_FLOAT16(af, a);
+                    UINT128_TO_FLOAT16(bf, b);
+                    UINT128_TO_FLOAT16(cf, b);
+                    cf.v ^= 0x8000; // flip sign
+                    resultf = f16_mulAdd(af, bf, cf);
+                    FLOAT16_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_BF16: {
+                    float16_t af, bf, cf, resultf;
+                    UINT128_TO_FLOAT16(af, a);
+                    UINT128_TO_FLOAT16(bf, b);
+                    UINT128_TO_FLOAT16(cf, c);
+                    cf.v ^= 0x8000; // flip sign
+                    resultf = bf16_mulAdd(af, bf, cf);
+                    FLOAT16_TO_UINT128(result, resultf);
+                    break;
+                }
+
+            }
+
+            break;
+        }
+
+        case OP_FNMADD: {
+            
+            switch (*operandFmt) {
+                case FMT_SINGLE: {
+                    float32_t af, bf, cf, resultf;
+                    UINT128_TO_FLOAT32(af, a);
+                    UINT128_TO_FLOAT32(bf, b);
+                    UINT128_TO_FLOAT32(cf, b);
+                    af.v ^= 0x80000000; // flip sign
+                    cf.v ^= 0x80000000; // flip sign
+                    resultf = f32_mulAdd(af, bf, cf);
+                    FLOAT32_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_DOUBLE: {
+                    float64_t af, bf, cf, resultf;
+                    UINT128_TO_FLOAT64(af, a);
+                    UINT128_TO_FLOAT64(bf, b);
+                    UINT128_TO_FLOAT64(cf, b);
+                    af.v ^= 0x8000000000000000; // flip sign
+                    cf.v ^= 0x8000000000000000; // flip sign
+                    resultf = f64_mulAdd(af, bf, cf);
+                    FLOAT64_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_QUAD: {
+                    float128_t af, bf, cf, resultf;
+                    UINT128_TO_FLOAT128(af, a);
+                    UINT128_TO_FLOAT128(bf, b);
+                    UINT128_TO_FLOAT128(cf, c);
+                    af.v[0] ^= 0x8000000000000000; // flip sign
+                    cf.v[0] ^= 0x8000000000000000; // flip sign
+                    resultf = f128_mulAdd(af, bf, cf);
+                    FLOAT128_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_HALF: {
+                    float16_t af, bf, cf, resultf;
+                    UINT128_TO_FLOAT16(af, a);
+                    UINT128_TO_FLOAT16(bf, b);
+                    UINT128_TO_FLOAT16(cf, b);
+                    af.v ^= 0x8000; // flip sign
+                    cf.v ^= 0x8000; // flip sign
+                    resultf = f16_mulAdd(af, bf, cf);
+                    FLOAT16_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_BF16: {
+                    float16_t af, bf, cf, resultf;
+                    UINT128_TO_FLOAT16(af, a);
+                    UINT128_TO_FLOAT16(bf, b);
+                    UINT128_TO_FLOAT16(cf, c);
+                    af.v ^= 0x8000; // flip sign
+                    cf.v ^= 0x8000; // flip sign
+                    resultf = bf16_mulAdd(af, bf, cf);
+                    FLOAT16_TO_UINT128(result, resultf);
+                    break;
+                }
+
+            }
+
+            break;
+        }
+
+        case OP_FNMSUB: {
+            
+            switch (*operandFmt) {
+                case FMT_SINGLE: {
+                    float32_t af, bf, cf, resultf;
+                    UINT128_TO_FLOAT32(af, a);
+                    UINT128_TO_FLOAT32(bf, b);
+                    UINT128_TO_FLOAT32(cf, b);
+                    af.v ^= 0x80000000; // flip sign
+                    resultf = f32_mulAdd(af, bf, cf);
+                    FLOAT32_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_DOUBLE: {
+                    float64_t af, bf, cf, resultf;
+                    UINT128_TO_FLOAT64(af, a);
+                    UINT128_TO_FLOAT64(bf, b);
+                    UINT128_TO_FLOAT64(cf, b);
+                    af.v ^= 0x8000000000000000; // flip sign
+                    resultf = f64_mulAdd(af, bf, cf);
+                    FLOAT64_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_QUAD: {
+                    float128_t af, bf, cf, resultf;
+                    UINT128_TO_FLOAT128(af, a);
+                    UINT128_TO_FLOAT128(bf, b);
+                    UINT128_TO_FLOAT128(cf, c);
+                    af.v[0] ^= 0x8000000000000000; // flip sign
+                    resultf = f128_mulAdd(af, bf, cf);
+                    FLOAT128_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_HALF: {
+                    float16_t af, bf, cf, resultf;
+                    UINT128_TO_FLOAT16(af, a);
+                    UINT128_TO_FLOAT16(bf, b);
+                    UINT128_TO_FLOAT16(cf, b);
+                    af.v ^= 0x8000; // flip sign
+                    resultf = f16_mulAdd(af, bf, cf);
+                    FLOAT16_TO_UINT128(result, resultf);
+                    break;
+                }
+
+                case FMT_BF16: {
+                    float16_t af, bf, cf, resultf;
+                    UINT128_TO_FLOAT16(af, a);
+                    UINT128_TO_FLOAT16(bf, b);
+                    UINT128_TO_FLOAT16(cf, c);
+                    af.v ^= 0x8000; // flip sign
+                    resultf = bf16_mulAdd(af, bf, cf);
+                    FLOAT16_TO_UINT128(result, resultf);
+                    break;
+                }
+
+            }
+
+            break;
+        }
 
         /* ... */
 
