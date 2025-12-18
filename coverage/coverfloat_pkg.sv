@@ -1,6 +1,10 @@
 
 // TODO: move to `included config file, but this is fine for now
 `define COVER_F32
+`define COVER_F64
+`define COVER_F16
+`define COVER_BF16
+`define COVER_F128
 `define COVER_VECTOR_WIDTH 804
 
 
@@ -57,7 +61,7 @@ package coverfloat_pkg;
     const logic [7:0] ROUND_MIN         = 8'd2;
     const logic [7:0] ROUND_MAX         = 8'd3;
     const logic [7:0] ROUND_NEAR_MAXMAG = 8'd4;
-    const logic [7:0] ROUND_ODD         = 8'd5;
+    // const logic [7:0] ROUND_ODD         = 8'd5;
 
     // format encodings
     //  {(int = 1, float = 0), (unsigned int), others => format encoding}
@@ -74,80 +78,3 @@ package coverfloat_pkg;
     const logic [7:0] FMT_ULONG  = 8'b 1_1_000010;
     
 endpackage
-
-/*
-    // 2 fp inputs
-    bins op_add    = {OP_ADD & ~32'hF};
-    bins op_sub    = {OP_SUB & ~32'hF};
-    bins op_mul    = {OP_MUL & ~32'hF};
-    bins op_div    = {OP_DIV & ~32'hF};
-    bins op_rem    = {OP_REM & ~32'hF};
-    bins op_qc     = {OP_QC & ~32'hF};
-    bins op_feq    = {OP_FEQ};
-    bins op_sc     = {OP_SC & ~32'hF};
-    bins op_flt    = {OP_FLT};
-    bins op_fle    = {OP_FLE};
-    bins op_min    = {OP_MIN & ~32'hF};
-    bins op_max    = {OP_MAX & ~32'hF};
-    bins op_csn    = {OP_CSN & ~32'hF};
-    bins op_fsgnj  = {OP_FSGNJ};
-    bins op_fsgnjn = {OP_FSGNJN};
-    bins op_fsgnjx = {OP_FSGNJX};
-
-    // 3 fp inputs
-    bins op_fma    = {OP_FMA & ~32'hF};
-    bins op_fmadd  = {OP_FMADD};
-    bins op_fmsub  = {OP_FMSUB};
-    bins op_fnmadd = {OP_FNMADD};
-    bins op_fnmsub = {OP_FNMSUB};
-
-    // 1 fp input
-    bins op_sqrt   = {OP_SQRT & ~32'hF};
-    bins op_cfi    = {OP_CFI & ~32'hF};
-    bins op_fcvtw  = {OP_FCVTW};
-    bins op_fcvtwu = {OP_FCVTWU};
-    bins op_fcvtl  = {OP_FCVTL};
-    bins op_fcvtlu = {OP_FCVTLU};
-    bins op_cff    = {OP_CFF & ~32'hF}; 
-    bins op_class  = {OP_CLASS & ~32'hF};
-    
-    // no fp inputs
-    bins op_cif    = {OP_CIF & ~32'hF};
-
-
-
-    // arbitrary fp output 
-    bins op_add    = {OP_ADD & ~32'hF};
-    bins op_sub    = {OP_SUB & ~32'hF};
-    bins op_mul    = {OP_MUL & ~32'hF};
-    bins op_div    = {OP_DIV & ~32'hF};
-    bins op_rem    = {OP_REM & ~32'hF};
-    bins op_qc     = {OP_QC & ~32'hF};
-    bins op_feq    = {OP_FEQ};
-    bins op_sc     = {OP_SC & ~32'hF};
-    bins op_flt    = {OP_FLT};
-    bins op_fle    = {OP_FLE};
-    bins op_min    = {OP_MIN & ~32'hF};
-    bins op_max    = {OP_MAX & ~32'hF};
-    bins op_csn    = {OP_CSN & ~32'hF};
-    bins op_fsgnj  = {OP_FSGNJ};
-    bins op_fsgnjn = {OP_FSGNJN};
-    bins op_fsgnjx = {OP_FSGNJX};
-    bins op_fma    = {OP_FMA & ~32'hF};
-    bins op_fmadd  = {OP_FMADD};
-    bins op_fmsub  = {OP_FMSUB};
-    bins op_fnmadd = {OP_FNMADD};
-    bins op_fnmsub = {OP_FNMSUB};
-    bins op_sqrt   = {OP_SQRT & ~32'hF};
-
-    // no fp inputs (or limited set of fp inputs)
-    bins op_cif    = {OP_CIF & ~32'hF};
-    bins op_cfi    = {OP_CFI & ~32'hF};
-    bins op_cff    = {OP_CFF & ~32'hF}; 
-    bins op_fcvtw  = {OP_FCVTW};
-    bins op_fcvtwu = {OP_FCVTWU};
-    bins op_fcvtl  = {OP_FCVTL};
-    bins op_fcvtlu = {OP_FCVTLU};
-    bins op_class  = {OP_CLASS & ~32'hF};
-
-    */
