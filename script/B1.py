@@ -45,7 +45,8 @@ FMT_UINT   = "C1" # 11000001
 FMT_LONG   = "82" # 10000010
 FMT_ULONG  = "C2" # 11000010
 
-FMTS = [FMT_SINGLE, FMT_DOUBLE, FMT_QUAD, FMT_HALF, FMT_BF16]
+FMTS     = [FMT_SINGLE, FMT_DOUBLE, FMT_QUAD, FMT_HALF, FMT_BF16]
+INT_FMTS = [FMT_INT, FMT_UINT, FMT_LONG, FMT_ULONG]
 
 ROUND_NEAR_EVEN   = "00"
 ROUND_MINMAG      = "01"
@@ -57,14 +58,8 @@ ROUND_ODD         = "05"
 SRC1_OPS = [OP_SQRT,
             OP_CLASS]
 
-            # TODO: missing from test generation and reference model
-
-            # OP_CFI,
-            # OP_FCVTW,
-            # OP_FCVTWU,
-            # OP_FCVTL,
-            # OP_FCVTLU,
-            # OP_CFF,
+CVT_OPS =  [OP_CFI,
+            OP_CFF]
 
 SRC2_OPS = [OP_ADD,
             OP_SUB,
@@ -341,6 +336,39 @@ def write1SrcTests(f, fmt):
 
             print(output[0:TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS], file=f)
 
+def writeCvtTests(f, fmt):
+    
+    rm = ROUND_NEAR_EVEN
+
+    # print("\n//", file=f)
+    print("// 1 source convert operations, all basic type input and result format combinations", file=f)
+    # print("//", file=f)
+    for op in CVT_OPS:
+        print(f"OP IS: {op}")
+        # print(f"FMT IS: {fmt}")
+        fmts = FMTS if op == OP_CFF else INT_FMTS
+        for resultFmt in fmts:
+            if resultFmt != fmt:
+                for val in BASIC_TYPES[fmt]:
+                    # print(f"VAL IS: {val}")
+                    # print(f"LINE: {op}_{rm}_{val}_{32*"0"}_{32*"0"}_{fmt}_{32*"0"}_{fmt}_00")
+                    # assert len(f"{op}_{rm}_{val}_{32*"0"}_{32*"0"}_{fmt}_{32*"0"}_{fmt}_00") == 152
+                    try:
+                        result = subprocess.run(
+                            ["./build/coverfloat_reference", "-", "-", "--no-error-check"],
+                            input=f"{op}_{rm}_{val}_{32*"0"}_{32*"0"}_{fmt}_{32*"0"}_{resultFmt}_00\n",
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            text=True,
+                            check=True
+                        )
+                        output = result.stdout
+                        # print(f"OUT:  {output}")
+                    except subprocess.CalledProcessError as e:
+                        print("Error:", e.stderr)
+
+                    print(output[0:TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS], file=f)
+
 
 def write2SrcTests(f, fmt):
     
@@ -398,6 +426,7 @@ def main():
             write1SrcTests(f, fmt)
             write2SrcTests(f, fmt)
             write3SrcTests(f, fmt)
+            writeCvtTests (f, fmt)
             # writeResultTests(f, fmt)
 
 if __name__ == "__main__":
