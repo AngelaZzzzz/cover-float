@@ -32,6 +32,50 @@ covergroup B1_cg (virtual coverfloat_interface CFI);
         `include "bins_templates/FP_src3_op_bins.svh"
     }
 
+    FP_convert_fmt: coverpoint CFI.resultFmt {
+        type_option.weight = 0;
+        // all formats to convert to 
+
+        `ifdef COVER_F16
+            bins fmt_half   = {FMT_HALF};
+        `endif // COVER_F16
+
+        `ifdef COVER_F32
+            bins fmt_single = {FMT_SINGLE};
+        `endif // COVER_F32
+        
+        `ifdef COVER_F64
+            bins fmt_double = {FMT_DOUBLE};
+        `endif // COVER_F64
+        
+        `ifdef COVER_F128
+            bins fmt_quad   = {FMT_QUAD};
+        `endif // COVER_F128
+        
+        `ifdef COVER_BF16
+            bins fmt_bf16   = {FMT_BF16};
+        `endif // COVER_BF16
+
+        bins fmt_int    = {FMT_INT};
+        bins fmt_uint   = {FMT_UINT};
+
+        `ifdef COVER_LONG
+            bins fmt_long  = {FMT_LONG};
+            bins fmt_ulong = {FMT_ULONG};
+        `endif // COVER_LONG
+    }
+
+    FP_convert_ops: coverpoint CFI.op {
+        type_option.weight = 0;
+        // checks that a convert is happening (F2X, X2F, or F2F)
+        // operand and result formats infer which type
+        
+        bins convert = {OP_CFI, OP_CFF, OP_CIF};
+        // bins op_cfi
+        // bins op_cff
+        // bins op_cif
+    }
+
     /************************************************************************
 
     Single precision helper coverpoints
@@ -238,6 +282,9 @@ covergroup B1_cg (virtual coverfloat_interface CFI);
         B1_F32_2_operands: cross FP_src2_ops,   F32_src1_basictypes, F32_src2_basictypes,                      F32_src_fmt;
         B1_F32_3_operands: cross FP_src3_ops,   F32_src1_basictypes, F32_src2_basictypes, F32_src3_basictypes, F32_src_fmt;
         B1_F32_result:     cross FP_result_ops, F32_result_basictypes,                                         F32_result_fmt;
+        B1_F32_convert:    cross FP_convert_ops, F32_src1_basictypes, FP_convert_fmt,                          F32_src_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_single);
+        }
     `endif // COVER_F32
 
     `ifdef COVER_F64
@@ -245,6 +292,9 @@ covergroup B1_cg (virtual coverfloat_interface CFI);
         B1_F64_2_operands: cross FP_src2_ops,   F64_src1_basictypes, F64_src2_basictypes,                      F64_src_fmt;
         B1_F64_3_operands: cross FP_src3_ops,   F64_src1_basictypes, F64_src2_basictypes, F64_src3_basictypes, F64_src_fmt;
         B1_F64_result:     cross FP_result_ops, F64_result_basictypes,                                         F64_result_fmt;
+        B1_F64_convert:    cross FP_convert_ops, F64_src1_basictypes, FP_convert_fmt,                          F64_src_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_double);
+        }
     `endif // COVER_F64
 
     `ifdef COVER_F16
@@ -252,6 +302,9 @@ covergroup B1_cg (virtual coverfloat_interface CFI);
         B1_F16_2_operands: cross FP_src2_ops,   F16_src1_basictypes, F16_src2_basictypes,                      F16_src_fmt;
         B1_F16_3_operands: cross FP_src3_ops,   F16_src1_basictypes, F16_src2_basictypes, F16_src3_basictypes, F16_src_fmt;
         B1_F16_result:     cross FP_result_ops, F16_result_basictypes,                                         F16_result_fmt;
+        B1_F16_convert:    cross FP_convert_ops, F16_src1_basictypes, FP_convert_fmt,                          F16_src_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_half);
+        }
     `endif // COVER_F16
 
     `ifdef COVER_BF16
@@ -259,6 +312,9 @@ covergroup B1_cg (virtual coverfloat_interface CFI);
         B1_BF16_2_operands: cross FP_src2_ops,   BF16_src1_basictypes, BF16_src2_basictypes,                       BF16_src_fmt;
         B1_BF16_3_operands: cross FP_src3_ops,   BF16_src1_basictypes, BF16_src2_basictypes, BF16_src3_basictypes, BF16_src_fmt;
         B1_BF16_result:     cross FP_result_ops, BF16_result_basictypes,                                           BF16_result_fmt;
+        B1_BF16_convert:    cross FP_convert_ops, BF16_src1_basictypes, FP_convert_fmt,                            BF16_src_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_bf16);
+        }
     `endif // COVER_BF16
 
     
@@ -267,6 +323,9 @@ covergroup B1_cg (virtual coverfloat_interface CFI);
         B1_F128_2_operands: cross FP_src2_ops,   F128_src1_basictypes, F128_src2_basictypes,                       F128_src_fmt;
         B1_F128_3_operands: cross FP_src3_ops,   F128_src1_basictypes, F128_src2_basictypes, F128_src3_basictypes, F128_src_fmt;
         B1_F128_result:     cross FP_result_ops, F128_result_basictypes,                                           F128_result_fmt;
+        B1_F128_convert:    cross FP_convert_ops, F128_src1_basictypes, FP_convert_fmt,                            F128_src_fmt {
+            ignore_bins invalid_convert = binsof(FP_convert_fmt.fmt_quad);
+        }
     `endif // COVER_F128
 
 
