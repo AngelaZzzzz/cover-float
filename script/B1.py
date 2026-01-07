@@ -57,6 +57,8 @@ ROUND_ODD         = "05"
 SRC1_OPS = [OP_SQRT,
             OP_CLASS]
 
+            # TODO: missing from test generation and reference model
+
             # OP_CFI,
             # OP_FCVTW,
             # OP_FCVTWU,
@@ -73,28 +75,42 @@ SRC2_OPS = [OP_ADD,
             OP_FLT,
             OP_FLE,
             OP_MIN,
-            OP_MAX ]
+            OP_MAX,
+            OP_FSGNJ,
+            OP_FSGNJN,
+            OP_FSGNJX ]
 
             # superset ops (no designated test)
             # OP_QC,
             # OP_SC,
             # OP_CSN,
 
-            # missing reference function currently
-            # OP_FSGNJ,
-            # OP_FSGNJN,
-            # OP_FSGNJX
-
-SRC3_OPS = [
-            OP_FMADD]
+SRC3_OPS = [OP_FMADD,
+            OP_FMSUB,
+            OP_FNMADD,
+            OP_FNMSUB]
 
             # superset ops (no designated test)
             # OP_FMA,
 
-            # missing reference function currently
-            # OP_FMSUB,
-            # OP_FNMADD,
-            # OP_FNMSUB
+RES_OPS = [OP_ADD,
+           OP_SUB,
+           OP_MUL,
+           OP_DIV,
+           OP_REM,
+           OP_MIN,
+           OP_MAX,
+           OP_FSGNJ,
+           OP_FSGNJN,
+           OP_FSGNJX,
+           OP_FMADD,
+           OP_FMSUB,
+           OP_FNMADD,
+           OP_FNMSUB,
+           OP_SQRT]
+        
+        #    OP_CSN,
+        #    OP_FMA,
 
 BASIC_TYPES = {
 
@@ -117,6 +133,8 @@ BASIC_TYPES = {
         "000000000000000000000000ff7fffff",
         "000000000000000000000000007fffff",
         "000000000000000000000000807fffff",
+        "00000000000000000000000000400000",
+        "00000000000000000000000080400000",
         "00000000000000000000000000000001",
         "00000000000000000000000080000001",
         "00000000000000000000000000000001",
@@ -160,6 +178,8 @@ BASIC_TYPES = {
         "0000000000000000000FFFFFFFFFFFFF",
         "00000000000000008000000000000001",
         "0000000000000000800FFFFFFFFFFFFF",
+        "00000000000000000008000000000000",
+        "00000000000000008008000000000000",
         "00000000000000007FF0000000000000",
         "0000000000000000FFF0000000000000",
         "00000000000000007FF8000000000000",
@@ -197,6 +217,8 @@ BASIC_TYPES = {
         "0000FFFFFFFFFFFFFFFFFFFFFFFFFFFF",
         "80000000000000000000000000000001",
         "8000FFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+        "0000E000000000000000000000000000",
+        "8000E000000000000000000000000000",
         "7FFF0000000000000000000000000000",
         "FFFF0000000000000000000000000000",
         "7FFF8000000000000000000000000000",
@@ -234,6 +256,8 @@ BASIC_TYPES = {
         "000000000000000000000000000003FF",
         "00000000000000000000000000008001",
         "000000000000000000000000000083FF",
+        "00000000000000000000000000000200",
+        "00000000000000000000000000008200",
         "00000000000000000000000000007C00",
         "0000000000000000000000000000FC00",
         "00000000000000000000000000007E00",
@@ -271,6 +295,8 @@ BASIC_TYPES = {
         "0000000000000000000000000000007f",
         "00000000000000000000000000008001",
         "0000000000000000000000000000807f",
+        "00000000000000000000000000000040",
+        "00000000000000000000000000008040",
         "00000000000000000000000000007f80",
         "0000000000000000000000000000ff80",
         "00000000000000000000000000007fc0",
@@ -315,6 +341,7 @@ def write1SrcTests(f, fmt):
 
             print(output[0:TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS], file=f)
 
+
 def write2SrcTests(f, fmt):
     
     rm = ROUND_NEAR_EVEN
@@ -338,6 +365,7 @@ def write2SrcTests(f, fmt):
                     print("Error:", e.stderr)
 
                 print(output[0:TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS], file=f)
+
 
 def write3SrcTests(f, fmt):
     
