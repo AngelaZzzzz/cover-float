@@ -102,8 +102,8 @@ BIASED_EXP = { # Range of biased exponents based on precision
     FMT_BF16 : [1, 254]
 }
 
-a_mant = 200 #random values because the mantissas don't matter
-b_mant = 2000
+a_mant = 2 #random values because the mantissas don't matter
+b_mant = 2
 
 
 def decimalComponentsToHex(fmt, sign, biased_exp, mantissa):
@@ -169,9 +169,10 @@ def outerTest(isTestOne, f):
 
 def main():
     with open("./tests/testvectors/B10_tv.txt", "w") as f:
-        outerTest(True, f) #Test #1
-        innerTest(f) #Test #2
-        outerTest(False, f) #Test #3
+        for op in [OP_ADD, OP_SUB]:
+            outerTest(True, f, op) #Test #1
+            innerTest(f, op) #Test #2
+            outerTest(False, f, op) #Test #3
     
     # decimalComponentsToHex(FMT_HALF, 0, 25, 976)2000, correct
     # decimalComponentsToHex(FMT_HALF, 0, 19, 256)200, correct
