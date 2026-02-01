@@ -1,7 +1,7 @@
 import subprocess
 import random
 
-from cover_float.reference import run_test_vector
+from cover_float.reference import run_and_store_test_vector
 
 TEST_VECTOR_WIDTH_HEX  = 144
 TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS = (TEST_VECTOR_WIDTH_HEX + 8)
@@ -328,25 +328,25 @@ BASIC_TYPES = {
     ]
 }
 
-def write1SrcTests(f, fmt):
+def write1SrcTests(test_f, cover_f, fmt):
     
     rm = ROUND_NEAR_EVEN
 
     # print("\n//", file=f)
-    print("// 1 source operations, all basic type input combinations", file=f)
+    print("// 1 source operations, all basic type input combinations", file=test_f)
     # print("//", file=f)
     for op in SRC1_OPS:
         print(f"OP IS: {op}")
         # print(f"FMT IS: {fmt}")
         for val in BASIC_TYPES[fmt]:
-            print(run_test_vector(f"{op}_{rm}_{val}_{32*'0'}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
+            run_and_store_test_vector(f"{op}_{rm}_{val}_{32*'0'}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00", test_f, cover_f)
 
-def writeCvtTests(f, fmt):
+def writeCvtTests(test_f, cover_f, fmt):
     
     rm = ROUND_NEAR_EVEN
 
     # print("\n//", file=f)
-    print("// 1 source convert operations, all basic type input and result format combinations", file=f)
+    print("// 1 source convert operations, all basic type input and result format combinations", file=test_f)
     # print("//", file=f)
     for op in CVT_OPS:
         print(f"OP IS: {op}")
@@ -355,42 +355,42 @@ def writeCvtTests(f, fmt):
         for resultFmt in fmts:
             if resultFmt != fmt:
                 for val in BASIC_TYPES[fmt]:
-                    print(run_test_vector(f"{op}_{rm}_{val}_{32*'0'}_{32*'0'}_{fmt}_{32*'0'}_{resultFmt}_00\n"), file=f)
+                    run_and_store_test_vector(f"{op}_{rm}_{val}_{32*'0'}_{32*'0'}_{fmt}_{32*'0'}_{resultFmt}_00", test_f, cover_f)
 
 
-def write2SrcTests(f, fmt):
+def write2SrcTests(test_f, cover_f, fmt):
     
     rm = ROUND_NEAR_EVEN
 
-    print("// 2 source operations, all basic type input combinations", file=f)
+    print("// 2 source operations, all basic type input combinations", file=test_f)
     for op in SRC2_OPS:
         print(f"OP IS: {op}")
         for val1 in BASIC_TYPES[fmt]:
             for val2 in BASIC_TYPES[fmt]:
-                print(run_test_vector(f"{op}_{rm}_{val1}_{val2}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
+                run_and_store_test_vector(f"{op}_{rm}_{val1}_{val2}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00", test_f, cover_f)
 
 
-def write3SrcTests(f, fmt):
+def write3SrcTests(test_f, cover_f, fmt):
     
     rm = ROUND_NEAR_EVEN
 
-    print("// 3 source operations, all basic type input combinations", file=f)
+    print("// 3 source operations, all basic type input combinations", file=test_f)
     for op in SRC3_OPS:
         print(f"OP IS: {op}")
         for val1 in BASIC_TYPES[fmt]:
             for val2 in BASIC_TYPES[fmt]:
                 for val3 in BASIC_TYPES[fmt]:
-                    print(run_test_vector(f"{op}_{rm}_{val1}_{val2}_{val3}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
+                    run_and_store_test_vector(f"{op}_{rm}_{val1}_{val2}_{val3}_{fmt}_{32*'0'}_{fmt}_00", test_f, cover_f)
 
 
 
 def main():
-    with open("./tests/testvectors/B1_tv.txt", "w") as f:
+    with open("./tests/testvectors/B1_tv.txt", "w") as test_vectors, open("./tests/covervectors/B1_cv.txt", "w") as cover_vectors:
         for fmt in FMTS:
-            write1SrcTests(f, fmt)
-            write2SrcTests(f, fmt)
-            write3SrcTests(f, fmt)
-            writeCvtTests (f, fmt)
+            write1SrcTests(test_vectors, cover_vectors, fmt)
+            write2SrcTests(test_vectors, cover_vectors, fmt)
+            write3SrcTests(test_vectors, cover_vectors, fmt)
+            writeCvtTests (test_vectors, cover_vectors, fmt)
             # writeResultTests(f, fmt)
 
 if __name__ == "__main__":

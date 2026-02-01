@@ -25,7 +25,7 @@ std::string run_test_vector(const std::string &test_vector, bool suppress_error_
   return result;
 }
 
-PYBIND11_MODULE(reference, m) {
+PYBIND11_MODULE(_reference, m) {
   m.doc() = "pybind11 hello module";
 
   m.def("hello_from_bin", &hello_from_bin, R"pbdoc(

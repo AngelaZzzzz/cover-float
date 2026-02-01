@@ -57,7 +57,7 @@
 import random
 import subprocess
 
-from cover_float.reference import run_test_vector
+from cover_float.reference import run_and_store_test_vector
 
 TEST_VECTOR_WIDTH_HEX  = 144
 TEST_VECTOR_WIDTH_HEX_WITH_SEPARATORS = (TEST_VECTOR_WIDTH_HEX + 8)
@@ -116,7 +116,7 @@ def decimalComponentsToHex(fmt, sign, biased_exp, mantissa):
     return h_complete
 
 
-def innerTest(f):
+def innerTest(test_f, cover_f):
     for fmt in FMTS:
         p = MANTISSA_BITS[fmt] + 1
         min_exp = BIASED_EXP[fmt][0]
@@ -131,7 +131,7 @@ def innerTest(f):
             complete_a = decimalComponentsToHex(fmt, 0, a_exp, a_mant)
             complete_b = decimalComponentsToHex(fmt, 0, b_exp, b_mant)
             
-            print(run_test_vector(f"{OP_ADD}_{ROUND_NEAR_EVEN}_{complete_a}_{complete_b}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
+            run_and_store_test_vector(f"{OP_ADD}_{ROUND_NEAR_EVEN}_{complete_a}_{complete_b}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00", test_f, cover_f)
 
             b_exp +=1 #Final statement, increments 1 over
              
@@ -143,12 +143,12 @@ def innerTest(f):
         for i in range(0, p+4):
             complete_a = decimalComponentsToHex(fmt, 0, a_exp, a_mant)
             complete_b = decimalComponentsToHex(fmt, 0, b_exp, b_mant)
-            print(run_test_vector(f"{OP_ADD}_{ROUND_NEAR_EVEN}_{complete_a}_{complete_b}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
+            run_and_store_test_vector(f"{OP_ADD}_{ROUND_NEAR_EVEN}_{complete_a}_{complete_b}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00", test_f, cover_f)
 
             b_exp -=1 #Final statement, decrements 1 under
     
 
-def outerTest(isTestOne, f):
+def outerTest(isTestOne, test_f, cover_f):
     for fmt in FMTS:
         p = MANTISSA_BITS[fmt] + 1
         min_exp = BIASED_EXP[fmt][0]
@@ -163,16 +163,16 @@ def outerTest(isTestOne, f):
         complete_b = decimalComponentsToHex(fmt, 0, b_exp, b_mant)
                 
         if(isTestOne):
-            print(run_test_vector(f"{OP_ADD}_{ROUND_NEAR_EVEN}_{complete_a}_{complete_b}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)
+            run_and_store_test_vector(f"{OP_ADD}_{ROUND_NEAR_EVEN}_{complete_a}_{complete_b}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00", test_f, cover_f)
         else:
-            print(run_test_vector(f"{OP_ADD}_{ROUND_NEAR_EVEN}_{complete_b}_{complete_a}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00\n"), file=f)    
+            run_and_store_test_vector(f"{OP_ADD}_{ROUND_NEAR_EVEN}_{complete_b}_{complete_a}_{32*'0'}_{fmt}_{32*'0'}_{fmt}_00", test_f, cover_f)
 
 
 def main():
-    with open("./tests/testvectors/B10_tv.txt", "w") as f:
-        outerTest(True, f) #Test #1
-        innerTest(f) #Test #2
-        outerTest(False, f) #Test #3
+    with open("./tests/testvectors/B10_tv.txt", "w") as test_f, open("./tests/covervectors/B10_cv.txt", "w") as cover_f:
+        outerTest(True, test_f, cover_f) #Test #1
+        innerTest(test_f, cover_f) #Test #2
+        outerTest(False, test_f, cover_f) #Test #3
     
     # decimalComponentsToHex(FMT_HALF, 0, 25, 976)2000, correct
     # decimalComponentsToHex(FMT_HALF, 0, 19, 256)200, correct
