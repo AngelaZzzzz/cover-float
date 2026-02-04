@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.15)
 project(${SKBUILD_PROJECT_NAME} LANGUAGES CXX C)
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra -Wall")
+
 set(PYBIND11_FINDPYTHON ON)
 find_package(pybind11 CONFIG REQUIRED)
 
