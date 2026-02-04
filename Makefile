@@ -1,6 +1,6 @@
 # --- Targets ---
 
-RM_CMD ?= rm-rf
+RM_CMD ?= rm -rf
 
 .PHONY: build clean sim all-tests B1 B10
 
@@ -15,13 +15,13 @@ sim:
 	cd sim && vsim -c -do "do run.do"
 
 all-tests:
-	uv run cover-float-testgen
+	uv run --managed-python cover-float-testgen
 
 B1:
-	uv run cover-float-testgen --model B1
+	uv run --managed-python cover-float-testgen --model B1
 
 B10:
-	uv run cover-float-testgen --model B10
+	uv run --managed-python cover-float-testgen --model B10
 
 # Clean target to remove build artifacts
 clean:
