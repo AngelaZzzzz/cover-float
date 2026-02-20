@@ -30,9 +30,9 @@ build-backend = "scikit_build_core.build"
 
 [dependency-groups]
 dev = [
-    "pre-commit>=4.3.0",
-    "pyright>=1.1.408",
-    "ruff>=0.15.0",
+    "pre-commit==4.3.0",
+    "pyright==1.1.408",
+    "ruff==0.15.2",
 ]
 
 [tool.ruff]
@@ -61,4 +61,4 @@ exclude = [
   "**/.*",
   ".venv",
 ]
-typeCheckingMode = "standard"
+typeCheckingMode = "strict"

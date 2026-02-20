@@ -23,8 +23,13 @@ std::string run_test_vector(const std::string &test_vector, bool suppress_error_
 PYBIND11_MODULE(_reference, m) {
     m.doc() = "Python bindings for the coverfloat reference model, providing functions to run test vectors.";
 
-    m.def("run_test_vector", &run_test_vector, R"pbdoc(
+    m.def(
+        "run_test_vector",
+        &run_test_vector,
+        R"pbdoc(
       Run the given vector through the coverfloat reference model.
   )pbdoc",
-          py::arg("test_vector"), py::arg("suppress_error_check") = true);
+        py::arg("test_vector"),
+        py::arg("suppress_error_check") = true
+    );
 }

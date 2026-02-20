@@ -97,7 +97,7 @@ def generate_with_long_runs(min_run_length: int, length: int) -> Generator[str, 
 
 def generate_special_significands(fmt: str) -> list[str]:
     mantissa_length = MANTISSA_BITS[fmt]
-    ans = []
+    ans: list[str] = []
 
     # Leading zeros
     ans.extend(generate_leading_and_trailing_zeros(mantissa_length))

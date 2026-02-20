@@ -5,11 +5,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-void softFloat_clearFlags(uint_fast8_t clearMask) { softfloat_exceptionFlags &= ~clearMask; }
+void softFloat_clearFlags(uint_fast8_t clearMask) {
+    softfloat_exceptionFlags &= ~clearMask;
+}
 
-uint_fast8_t softFloat_getFlags() { return softfloat_exceptionFlags; }
+uint_fast8_t softFloat_getFlags() {
+    return softfloat_exceptionFlags;
+}
 
-void softFloat_setRoundingMode(uint_fast8_t rm) { softfloat_roundingMode = rm; }
+void softFloat_setRoundingMode(uint_fast8_t rm) {
+    softfloat_roundingMode = rm;
+}
 
 void softfloat_getIntermResults(intermResult_t *result) {
 
@@ -90,10 +96,19 @@ uint128_t parse_hex_128(const char *hex) {
     return value;
 }
 
-int reference_model(const uint32_t *op, const uint8_t *rm, const uint128_t *a, const uint128_t *b, const uint128_t *c,
-                    const uint8_t *operandFmt, const uint8_t *resultFmt,
+int reference_model(
+    const uint32_t *op,
+    const uint8_t *rm,
+    const uint128_t *a,
+    const uint128_t *b,
+    const uint128_t *c,
+    const uint8_t *operandFmt,
+    const uint8_t *resultFmt,
 
-                    uint128_t *result, uint8_t *flags, intermResult_t *intermResult) {
+    uint128_t *result,
+    uint8_t *flags,
+    intermResult_t *intermResult
+) {
 
     // clear flags so we get only triggered flags
     softFloat_clearFlags(0xFF);
@@ -1817,8 +1832,11 @@ int reference_model(const uint32_t *op, const uint8_t *rm, const uint128_t *a, c
     // 1
     if (intermResult->exp <= 0) {
         struct uint128_extra shifted_sig = softfloat_shiftRightJam128Extra(
-            intermResult->sig64, intermResult->sig0, intermResult->sigExtra,
-            -intermResult->exp + 1); // See s_roundPackToF32.c for why we add 1. Our exp is +1 theirs
+            intermResult->sig64,
+            intermResult->sig0,
+            intermResult->sigExtra,
+            -intermResult->exp + 1
+        ); // See s_roundPackToF32.c for why we add 1. Our exp is +1 theirs
 
         intermResult->sig64 = shifted_sig.v.v64;
         intermResult->sig0 = shifted_sig.v.v0;
@@ -1866,8 +1884,13 @@ float128_t f128_max(float128_t a, float128_t b) {
     }
 }
 
-int coverfloat_runtestvector(const char *input, size_t buffer_size, char *output, size_t output_size,
-                             bool suppress_error_check) {
+int coverfloat_runtestvector(
+    const char *input,
+    size_t buffer_size,
+    char *output,
+    size_t output_size,
+    bool suppress_error_check
+) {
     (void)buffer_size; // Unused for now, in theory it should be passed to sscanf, but that is not supported :(
 
     char op_str[MAX_TOKEN_LEN + 1]; // plus one for space for null terminator
@@ -1880,8 +1903,19 @@ int coverfloat_runtestvector(const char *input, size_t buffer_size, char *output
     char resFmt_str[MAX_TOKEN_LEN + 1];
     char flags_str[MAX_TOKEN_LEN + 1];
 
-    if (sscanf(input, "%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_ \t\r\n]", op_str, rm_str,
-               a_str, b_str, c_str, opFmt_str, res_str, resFmt_str, flags_str) != 9) {
+    if (sscanf(
+            input,
+            "%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_]_%48[^_ \t\r\n]",
+            op_str,
+            rm_str,
+            a_str,
+            b_str,
+            c_str,
+            opFmt_str,
+            res_str,
+            resFmt_str,
+            flags_str
+        ) != 9) {
         snprintf(output, output_size, "Error: malformed testvector: %s\n", input);
 
         return EXIT_FAILURE;
@@ -1905,28 +1939,65 @@ int coverfloat_runtestvector(const char *input, size_t buffer_size, char *output
 
     // Call reference model
 
-    int success = reference_model(&op, &rm, &a, &b, &c, &opFmt, &resFmt,
+    int success = reference_model(
+        &op,
+        &rm,
+        &a,
+        &b,
+        &c,
+        &opFmt,
+        &resFmt,
 
-                                  &newRes, &newFlags, &intermRes);
+        &newRes,
+        &newFlags,
+        &intermRes
+    );
 
     if (success == EXIT_FAILURE) {
         return EXIT_FAILURE;
     }
 
-    snprintf(output, output_size,
-             "%08x_%02x_%016llx%016llx_%016llx%016llx_%016llx%016llx_%02x_%016llx%016llx_%02x_%02x_%01x_%08x_%016llx%"
-             "016llx%016llx\n",
-             op, rm, a.upper, a.lower, b.upper, b.lower, c.upper, c.lower, opFmt, newRes.upper, newRes.lower, resFmt,
-             newFlags, intermRes.sign, intermRes.exp, intermRes.sig64, intermRes.sig0, intermRes.sigExtra);
+    snprintf(
+        output,
+        output_size,
+        "%08x_%02x_%016llx%016llx_%016llx%016llx_%016llx%016llx_%02x_%016llx%016llx_%02x_%02x_%01x_%08x_%016llx%"
+        "016llx%016llx\n",
+        op,
+        rm,
+        a.upper,
+        a.lower,
+        b.upper,
+        b.lower,
+        c.upper,
+        c.lower,
+        opFmt,
+        newRes.upper,
+        newRes.lower,
+        resFmt,
+        newFlags,
+        intermRes.sign,
+        intermRes.exp,
+        intermRes.sig64,
+        intermRes.sig0,
+        intermRes.sigExtra
+    );
 
     if (!suppress_error_check) {
         if (res.upper != newRes.upper || res.lower != newRes.lower || // outputs don't match
             flags != newFlags) {                                      // flags   don't match
             snprintf(
-                output, output_size,
+                output,
+                output_size,
                 "Error: testvector output doesn't match expected value\nTestVector output: %016llx%016llx\nExpected "
                 "output:   %016llx%016llx\nTestVector Flags: %02x\nExpected Flags: %02x\nOperation: %08x\n",
-                res.upper, res.lower, newRes.upper, newRes.lower, flags, newFlags, op);
+                res.upper,
+                res.lower,
+                newRes.upper,
+                newRes.lower,
+                flags,
+                newFlags,
+                op
+            );
 
             return EXIT_FAILURE;
         }
