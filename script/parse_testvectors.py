@@ -4,7 +4,7 @@ Parse test vectors into human-readable floating-point format.
 Converts hex-encoded test vectors into readable format like:
 b32+ =0 -1.016A3DP101 +1.7CEE72P95 -> -1.7AED06P100 x
 
-Currently only supports 
+Currently supports 
 - Rounding mode: Round to Nearest Even
 - Operations: add, sub, mul, div, fmadd, fmsub, fnmadd, fnmsub, sqrt, rem, cfi, cff, cif, class
 - Flags: 'x' if a flag is raised and '' if none
