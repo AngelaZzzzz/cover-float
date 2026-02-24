@@ -6,7 +6,8 @@ b32+ =0 -1.016A3DP101 +1.7CEE72P95 -> -1.7AED06P100 x
 
 Currently supports 
 - Rounding mode: Round to Nearest Even
-- Operations: add, sub, mul, div, fmadd, fmsub, fnmadd, fnmsub, sqrt, rem, cfi, cff, cif, class
+- Operations: add, sub, mul, div, fmadd, fmsub, fnmadd, fnmsub, sqrt, rem, 
+              cfi, cff, cif, class, feq, flt, fle, min, max, csn, fsgnj, fsgnjn, fsgnjx
 - Flags: 'x' if a flag is raised and '' if none
 """
 
@@ -39,7 +40,16 @@ OP_NAMES = {
     "00000080": "cfi",
     "00000090": "cff",
     "000000A0": "cif",
-    "000000D0": "class"
+    "000000B1": "feq",
+    "000000C1": "flt",
+    "000000C2": "fle",
+    "000000D0": "class",
+    "000000E0": "min",
+    "000000F0": "max",
+    "00000100": "csn",
+    "00000101": "fsgnj",
+    "00000102": "fsgnjn",
+    "00000103": "fsgnjx",
 }
 
 ROUND_NAMES = {
@@ -133,12 +143,8 @@ def decode_class_mask(val):
     return "|".join(active) if active else hex(val)
 
 
-def value_to_string(parsed, fmt_code, is_class = False):
-    """Format a parsed value (float or int) into a string.
-
-    Floats get the usual ±mantissaPexponent representation; integers are
-    shown in decimal (preserving sign) with a leading `0x` prefix for clarity.
-    """
+def value_to_string(parsed, fmt_code, is_class=False):
+    """Format a parsed value (float or int) into a string."""
     spec = FMT_SPECS.get(fmt_code, {})
 
     if is_class:
@@ -170,7 +176,6 @@ def parse_test_vector(line):
     """
     Parse a single test vector line.
     Format: OP_RM_A_B_C_OPFMT_RESULT_RESFMT_FLAGS
-    Where A, B, C, RESULT are hex values of variable width based on format
     """
     line = line.strip()
     if not line or line.startswith("//"):
@@ -194,7 +199,7 @@ def parse_test_vector(line):
     one_op_names = ("sqrt", "cfi", "cff", "cif", "class")
     three_op_names = ("fmadd", "fmsub", "fnmadd", "fnmsub")
 
-    op_name = OP_NAMES.get(op_code.upper(), "?")
+    op_name = OP_NAMES.get(op_code.upper(), "UNK")
     rnd_name = ROUND_NAMES.get(rnd_code, "?")
 
     op_spec = FMT_SPECS.get(op_fmt)
@@ -233,7 +238,10 @@ def parse_test_vector(line):
         if op_name in three_op_names:
             c_parsed = parse_fp_value(c_val_formatted, op_fmt)
 
-        if op_name == "class":
+        # Force integer parsing for comparisons and class
+        int_result_ops = ("class", "feq", "flt", "fle")
+        
+        if op_name in int_result_ops:
             result_parsed = parse_int_value(result_val_formatted, {"total_bits": 32, "signed": False})
         elif res_spec and res_spec.get("type") == "float":
             result_parsed = parse_fp_value(result_val_formatted, result_fmt)
@@ -241,6 +249,7 @@ def parse_test_vector(line):
             result_parsed = parse_int_value(result_val_formatted, res_spec)
         else:
             result_parsed = None
+            
     except Exception as err:
         print(f"warning: failed to parse line {line!r}: {err}")
         return None
@@ -248,7 +257,10 @@ def parse_test_vector(line):
     a_str = value_to_string(a_parsed, op_fmt)
     b_str = value_to_string(b_parsed, op_fmt) if b_parsed else None
     c_str = value_to_string(c_parsed, op_fmt) if c_parsed else None
-    result_str = value_to_string(result_parsed, result_fmt, is_class = (op_name) == "class") if res_spec else result_val_formatted
+    
+    # Evaluate effective format to safely trigger int prints where forced
+    effective_res_fmt = "c1" if op_name in ("class", "feq", "flt", "fle") else result_fmt
+    result_str = value_to_string(result_parsed, effective_res_fmt, is_class=(op_name == "class")) if res_spec else result_val_formatted
 
     fmt_name = op_spec["name"]
     options = {
@@ -265,9 +277,19 @@ def parse_test_vector(line):
         "cfi": "cfi",
         "cff": "cff",
         "cif": "cif",
-        "class": "cls"
+        "class": "cls",
+        "feq": "==",
+        "flt": "<",
+        "fle": "<=",
+        "min": "min",
+        "max": "max",
+        "csn": "csn",
+        "fsgnj": "sj",
+        "fsgnjn": "sjn",
+        "fsgnjx": "sjx"
     }
-    op_sym = options.get(op_name)
+    
+    op_sym = options.get(op_name, "UNK")
     flags_str = "x" if flags != "00" else ""
 
     result = {
@@ -294,6 +316,7 @@ def format_output(parsed):
     elif "op_c" in parsed:
         base = f"{parsed['format']} {parsed['round']} {parsed['op_a']} {parsed['op_b']} {parsed['op_c']}"
     else:
+        # default case handles all 2-operand functions, including feq, min, max, fsgnj, etc.
         base = f"{parsed['format']} {parsed['round']} {parsed['op_a']} {parsed['op_b']}"
     
     base += f" -> {parsed['result']}"
