@@ -31,11 +31,14 @@ def auto_parse(model_name: str, output_dir: str) -> None:
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    count = 0
     with input_path.open("r") as infile, output_path.open("w") as outfile:
         for line in infile:
             parsed = parse_test_vector(line)
             if parsed:
                 outfile.write(format_output(parsed) + "\n")
+                count += 1
+    print(f"Parsed {count} {model_name} vectors to {output_path}")
 
 def testgen() -> None:
     parser = argparse.ArgumentParser()
@@ -72,4 +75,3 @@ def testgen() -> None:
         if "B12" in args.models:
             tg.B12.main()
             auto_parse("B12", args.output_dir)
-            
