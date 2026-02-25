@@ -1,3 +1,3 @@
-from .parse_testvectors import parse_test_vector, format_output
+from .parse_testvectors import format_output, parse_test_vector
 
-__all__ = ["parse_test_vector", "format_output"]
+__all__ = ["format_output", "parse_test_vector"]

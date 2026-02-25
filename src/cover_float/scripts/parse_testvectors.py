@@ -4,10 +4,10 @@ Parse test vectors into human-readable floating-point format.
 Converts hex-encoded test vectors into readable format like:
 b32+ =0 -1.016A3DP101 +1.7CEE72P95 -> -1.7AED06P100 x
 
-Currently supports 
+Currently supports
 - Rounding mode: Round to Nearest Even
-- Operations: add, sub, mul, div, fmadd, fmsub, fnmadd, fnmsub, sqrt, rem, 
-              cfi, cff, cif, class, feq, flt, fle, min, max, csn, fsgnj, fsgnjn, fsgnjx
+- Operations: add, sub, mul, div, fmadd, fmsub, fnmadd, fnmsub, sqrt, rem,
+            cfi, cff, cif, class, feq, flt, fle, min, max, csn, fsgnj, fsgnjn, fsgnjx
 - Flags: 'x' if a flag is raised and '' if none
 """
 
@@ -19,10 +19,10 @@ FMT_SPECS: dict[str, dict[str, Any]] = {
     "02": {"name": "f64", "type": "float", "exp_bits": 11, "man_bits": 52, "bias": 1023, "total_bits": 64},
     "03": {"name": "f128", "type": "float", "exp_bits": 15, "man_bits": 112, "bias": 16383, "total_bits": 128},
     "04": {"name": "bf16", "type": "float", "exp_bits": 8, "man_bits": 7, "bias": 127, "total_bits": 16},
-    "81": {"name": "int",  "type": "int",  "signed": True,  "total_bits": 32},
-    "c1": {"name": "uint", "type": "int",  "signed": False, "total_bits": 32},
-    "82": {"name": "long", "type": "int",  "signed": True,  "total_bits": 64},
-    "c2": {"name": "ul",   "type": "int",  "signed": False, "total_bits": 64},
+    "81": {"name": "int", "type": "int", "signed": True, "total_bits": 32},
+    "c1": {"name": "uint", "type": "int", "signed": False, "total_bits": 32},
+    "82": {"name": "long", "type": "int", "signed": True, "total_bits": 64},
+    "c2": {"name": "ulong", "type": "int", "signed": False, "total_bits": 64},
 }
 
 OP_NAMES: dict[str, str] = {
@@ -34,20 +34,20 @@ OP_NAMES: dict[str, str] = {
     "00000052": "fmsub",
     "00000053": "fnmadd",
     "00000054": "fnmsub",
-    "00000060": "sqrt", 
-    "00000070": "rem", 
-    "00000080": "cfi", 
+    "00000060": "sqrt",
+    "00000070": "rem",
+    "00000080": "cfi",
     "00000090": "cff",
-    "000000A0": "cif", 
-    "000000B1": "feq", 
-    "000000C1": "flt", 
+    "000000A0": "cif",
+    "000000B1": "feq",
+    "000000C1": "flt",
     "000000C2": "fle",
-    "000000D0": "class", 
-    "000000E0": "min", 
-    "000000F0": "max", 
+    "000000D0": "class",
+    "000000E0": "min",
+    "000000F0": "max",
     "00000100": "csn",
-    "00000101": "fsgnj", 
-    "00000102": "fsgnjn", 
+    "00000101": "fsgnj",
+    "00000102": "fsgnjn",
     "00000103": "fsgnjx",
 }
 
@@ -81,16 +81,22 @@ def parse_fp_value(hex_val: str, fmt_code: str) -> Optional[dict[str, Any]]:
     biased_exp: int = (val >> man_bits) & ((1 << exp_bits) - 1)
     mantissa: int = val & ((1 << man_bits) - 1)
     
-    is_zero: bool = (biased_exp == 0 and mantissa == 0)
-    is_inf: bool = (biased_exp == ((1 << exp_bits) - 1) and mantissa == 0)
-    is_nan: bool = (biased_exp == ((1 << exp_bits) - 1) and mantissa != 0)
-    is_subnormal: bool = (biased_exp == 0 and mantissa != 0)
+    is_zero: bool = biased_exp == 0 and mantissa == 0
+    is_inf: bool = biased_exp == ((1 << exp_bits) - 1) and mantissa == 0
+    is_nan: bool = biased_exp == ((1 << exp_bits) - 1) and mantissa != 0
+    is_subnormal: bool = biased_exp == 0 and mantissa != 0
     
     actual_exp: int = (1 - spec["bias"]) if (is_zero or is_subnormal) else (biased_exp - spec["bias"])
     
     return {
-        "sign": sign, "exp": actual_exp, "mantissa": mantissa, "man_bits": man_bits,
-        "is_zero": is_zero, "is_inf": is_inf, "is_nan": is_nan, "is_subnormal": is_subnormal,
+        "sign": sign,
+        "exp": actual_exp,
+        "mantissa": mantissa,
+        "man_bits": man_bits,
+        "is_zero": is_zero,
+        "is_inf": is_inf,
+        "is_nan": is_nan,
+        "is_subnormal": is_subnormal,
     }
 
 def format_mantissa(parsed: dict[str, Any]) -> str:
@@ -108,9 +114,16 @@ def format_mantissa(parsed: dict[str, Any]) -> str:
 def decode_class_mask(val: int) -> str:
     """Decodes fclass bitmask."""
     masks: dict[int, str] = {
-        0: "NegInf", 1: "NegNormal", 2: "NegSubnormal", 3: "NegZero",
-        4: "PosZero", 5: "PosSubnormal", 6: "PosNormal", 7: "PosInf",
-        8: "sNaN", 9: "qNaN"
+        0: "NegInf",
+        1: "NegNormal",
+        2: "NegSubnormal",
+        3: "NegZero",
+        4: "PosZero",
+        5: "PosSubnormal",
+        6: "PosNormal",
+        7: "PosInf",
+        8: "sNaN",
+        9: "qNaN",
     }
     active = [name for bit, name in masks.items() if (val >> bit) & 1]
     return "|".join(active) if active else hex(val)
@@ -166,11 +179,19 @@ def parse_test_vector(line: str) -> Optional[dict[str, Any]]:
     op_hex_chars: int = op_spec["total_bits"] // 4
     res_hex_chars: int = res_spec["total_bits"] // 4
 
-    a_parsed = parse_fp_value(fixwidth(a_val, op_hex_chars), op_fmt) if op_spec["type"] == "float" else parse_int_value(fixwidth(a_val, op_hex_chars), op_spec)
+    a_parsed = (
+        parse_fp_value(fixwidth(a_val, op_hex_chars), op_fmt)
+        if op_spec["type"] == "float" 
+        else parse_int_value(fixwidth(a_val, op_hex_chars), op_spec)
+    )
     
     b_parsed = None
     if op_name not in one_op_names:
-        b_parsed = parse_fp_value(fixwidth(b_val, op_hex_chars), op_fmt) if op_spec["type"] == "float" else parse_int_value(fixwidth(b_val, op_hex_chars), op_spec)
+        b_parsed = (
+            parse_fp_value(fixwidth(b_val, op_hex_chars), op_fmt)
+            if op_spec["type"] == "float" 
+            else parse_int_value(fixwidth(b_val, op_hex_chars), op_spec)
+        )
 
     c_parsed = parse_fp_value(fixwidth(c_val, op_hex_chars), op_fmt) if op_name in three_op_names else None
 
@@ -182,29 +203,29 @@ def parse_test_vector(line: str) -> Optional[dict[str, Any]]:
         result_parsed = parse_int_value(fixwidth(result_val, res_hex_chars), res_spec)
 
     options: dict[str, str] = {
-        "add": "+", 
-        "sub": "-", 
-        "mul": "*", 
-        "div": "/", 
-        "fmadd": "*+", 
-        "fmsub": "*-", 
-        "fnmadd": "-*+", 
-        "fnmsub": "-*-", 
-        "sqrt": "v-", 
-        "rem": "rem", 
-        "cfi": "cfi", 
-        "cff": "cff", 
-        "cif": "cif", 
-        "class": "cls", 
-        "feq": "==", 
-        "flt": "<", 
+        "add": "+",
+        "sub": "-",
+        "mul": "*",
+        "div": "/",
+        "fmadd": "*+",
+        "fmsub": "*-",
+        "fnmadd": "-*+",
+        "fnmsub": "-*-",
+        "sqrt": "v-",
+        "rem": "rem",
+        "cfi": "cfi",
+        "cff": "cff",
+        "cif": "cif",
+        "class": "cls",
+        "feq": "==",
+        "flt": "<",
         "fle": "<=",
-        "min": "min", 
-        "max": "max", 
-        "csn": "csn", 
-        "fsgnj": "sj", 
-        "fsgnjn": "sjn", 
-        "fsgnjx": "sjx"
+        "min": "min",
+        "max": "max",
+        "csn": "csn",
+        "fsgnj": "sj",
+        "fsgnjn": "sjn",
+        "fsgnjx": "sjx",
     }
 
     effective_res_fmt: str = "c1" if op_name in ("class", "feq", "flt", "fle") else result_fmt
@@ -217,13 +238,13 @@ def parse_test_vector(line: str) -> Optional[dict[str, Any]]:
         "op_c": value_to_string(c_parsed, op_fmt) if c_parsed else None,
         "result": value_to_string(result_parsed, effective_res_fmt, is_class=(op_name == "class")),
         "flags": "x" if flags != "00" else "",
-        "res_fmt_name": res_spec["name"]
+        "res_fmt_name": res_spec["name"],
     }
 
 def format_output(parsed: dict[str, Any]) -> str:
     """Format parsed test vector to output string based on operand count."""
     flags: str = f" {parsed['flags']}" if parsed['flags'] else ""
-    op: str = parsed['format'] 
+    op: str = parsed['format']
     rnd: str = parsed['round']
     a: str = parsed['op_a']
     b: Optional[str] = parsed.get('op_b')
@@ -237,4 +258,3 @@ def format_output(parsed: dict[str, Any]) -> str:
         base = f"{op} {rnd} {a} {b}"
     
     return f"{base} -> {parsed['result']} ({parsed['res_fmt_name']}){flags}"
-    

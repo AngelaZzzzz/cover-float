@@ -3,7 +3,7 @@ from pathlib import Path
 
 import cover_float.testgen as tg
 from cover_float.reference import run_test_vector
-from cover_float.scripts.parse_testvectors import parse_test_vector, format_output
+from cover_float.scripts.parse_testvectors import format_output, parse_test_vector
 
 
 def main() -> None:
