@@ -107,7 +107,7 @@ def format_mantissa(parsed: dict[str, Any]) -> str:
     mantissa: int = parsed["mantissa"]
     man_bits: int = parsed["man_bits"]
     lead_bit: str = "0" if parsed["is_subnormal"] else "1"
-    
+
     if mantissa == 0:
         return f"{lead_bit}.0"
 
@@ -137,7 +137,7 @@ def decode_class_mask(val: int) -> str:
 def value_to_string(parsed: Optional[dict[str, Any]], fmt_code: str, is_class: bool = False) -> str:
     if parsed is None:
         return "None"
-        
+
     spec = FMT_SPECS.get(fmt_code, {})
 
     if is_class:
@@ -169,7 +169,7 @@ def parse_test_vector(line: str) -> Optional[dict[str, Any]]:
 
     op_code, rnd_code, a_val, b_val, c_val, op_fmt, result_val, result_fmt = parts[:8]
     flags: str = parts[8] if len(parts) > 8 else "00"
-    
+
     one_op_names = ("sqrt", "cfi", "cff", "cif", "class")
     three_op_names = ("fmadd", "fmsub", "fnmadd", "fnmsub")
 
@@ -191,7 +191,7 @@ def parse_test_vector(line: str) -> Optional[dict[str, Any]]:
         if op_spec["type"] == "float"
         else parse_int_value(fixwidth(a_val, op_hex_chars), op_spec)
     )
-    
+
     b_parsed = None
     if op_name not in one_op_names:
         b_parsed = (
