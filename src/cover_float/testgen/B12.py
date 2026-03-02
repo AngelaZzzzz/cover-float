@@ -47,13 +47,13 @@ def decimalComponentsToHex(fmt: str, sign: int, biased_exp: int, mantissa: int) 
     return f"{int(bits, 2):032X}"
 
 
-def write_add(fmt: str, a_hex: str, b_hex: str, test_f: TextIO, cover_f: TextIO) -> None:
+def writeAdd(fmt: str, a_hex: str, b_hex: str, test_f: TextIO, cover_f: TextIO) -> None:
     run_and_store_test_vector(
         f"{OP_ADD}_{ROUND_NEAR_EVEN}_{a_hex}_{b_hex}_{32 * '0'}_{fmt}_{32 * '0'}_{fmt}_00", test_f, cover_f
     )
 
 
-def write_sub(fmt: str, a_hex: str, b_hex: str, test_f: TextIO, cover_f: TextIO) -> None:
+def writeSub(fmt: str, a_hex: str, b_hex: str, test_f: TextIO, cover_f: TextIO) -> None:
     run_and_store_test_vector(
         f"{OP_SUB}_{ROUND_NEAR_EVEN}_{a_hex}_{b_hex}_{32 * '0'}_{fmt}_{32 * '0'}_{fmt}_00", test_f, cover_f
     )
@@ -149,7 +149,7 @@ def makeTestVectors(fmt: str, d: int, operation: str, test_f: TextIO, cover_f: T
 
     is_carry = False
     is_add = operation == "add"
-    write_fn = write_add if is_add else write_sub
+    write_fn = writeAdd if is_add else writeSub
 
     # Exponents
     a_exp = random.randint(min_exp - d, max_exp)
