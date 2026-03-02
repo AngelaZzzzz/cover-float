@@ -2,8 +2,19 @@
 
 import math
 import random
+from pathlib import Path
+from typing import TextIO
 
 import cover_float.common.constants as constants
+from cover_float.common.util import generate_test_vector
+from cover_float.reference import run_and_store_test_vector
+
+B9_1SRC = [constants.OP_SQRT]
+B9_2SRC = [
+    constants.OP_MUL,
+    constants.OP_DIV,
+    constants.OP_REM,
+]
 
 
 class B9SignificandGenerator:
@@ -143,9 +154,45 @@ class B9SignificandGenerator:
         ]
 
 
+def generate_float(sign: int, exponent: int, mantissa: int, fmt: str) -> int:
+    exponent += constants.EXPONENT_BIASES[fmt]
+    return (
+        (sign << (constants.MANTISSA_BITS[fmt] + constants.EXPONENT_BITS[fmt]))
+        | (exponent << constants.MANTISSA_BITS[fmt])
+        | mantissa
+    )
+
+
+def B9_generator(sigs: list[str], fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
+    exp_max = 2 ** (constants.EXPONENT_BITS[fmt] - 2)
+    exp_min = -(2 ** (constants.EXPONENT_BITS[fmt] - 2))
+
+    for op in [*B9_1SRC, *B9_2SRC]:
+        for sig1 in sigs:
+            for sig2 in sigs:
+                exp1 = random.randint(exp_min, exp_max)
+                sign1 = random.randint(0, 1)
+                exp2 = random.randint(exp_min, exp_max)
+                sign2 = random.randint(0, 1)
+
+                float1 = generate_float(sign1, exp1, int(sig1, 2), fmt)
+                float2 = generate_float(sign2, exp2, int(sig2, 2), fmt) if op not in B9_1SRC else 0
+
+                tv = generate_test_vector(op, float1, float2, 0, fmt, fmt, random.choice(constants.ROUNDING_MODES))
+                run_and_store_test_vector(tv, test_f, cover_f)
+
+
 def main() -> None:
     random.seed(9)
 
-    for fmt in constants.FLOAT_FMTS:
-        generator = B9SignificandGenerator(constants.MANTISSA_BITS[fmt])
-        generator.generate()
+    with (
+        Path("tests/testvectors/B9_tv.txt").open("w") as test_f,
+        Path("tests/covervectors/B9_cv.txt").open("w") as cover_f,
+    ):
+        for fmt in constants.FLOAT_FMTS:
+            generator = B9SignificandGenerator(constants.MANTISSA_BITS[fmt])
+            sigs = generator.generate()
+
+            print(fmt, len(sigs))
+
+            B9_generator(sigs, fmt, test_f, cover_f)
