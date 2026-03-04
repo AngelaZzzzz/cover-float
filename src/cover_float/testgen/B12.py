@@ -1,10 +1,11 @@
 """
 Angela Zheng (angela20061015@gmail.com)
 
-February 10, 2026
+Created:        February 10, 2026
+Last Edited:    March 4, 2026
 """
-# TODO: For future: implement logic to get different a and b exponents in regular cases
 
+# TODO: For future: implement logic to get different a and b exponents in regular cases
 import random
 from pathlib import Path
 from typing import TextIO
@@ -43,34 +44,28 @@ def writeSub(fmt: str, a_hex: str, b_hex: str, test_f: TextIO, cover_f: TextIO) 
     )
 
 
+def makeNegPMantissas(fmt: str) -> tuple[int, int]:
+    m = MANTISSA_BITS[fmt]
+
+    a_m = 0
+    b_m = (1 << m) - 1
+
+    return a_m, b_m
+
+
 def makeCancellationMantissas(fmt: str, d: int) -> tuple[int, int]:
-    """
-    Generate identical -d bits for both operands such that exactly -d bits cancel.
-    """
-
-    # d = -8, k = 8
-    # a = 01011011 11 1110111111001    8 random bits + 11 + m-k-2 random bits
-    # b = 01011011 00 1110111111001    same 8 random bits + 00 + same m-k-2 random bits
-    # The 11 and 00 are to prevent borrowing from the previous bit canceling the differing bit
-
     m = MANTISSA_BITS[fmt]
     k = -d
 
-    # 10 mantissa bits.
-    # a = 1 11 0101011
-    # b = 1 00 0101011
-    # prefix for a and b
     if k > 1:
-        a_prefix = random.getrandbits(k - 1) << (m - k + 1)  # 21 2
+        a_prefix = random.getrandbits(k - 1) << (m - k + 1)
         b_prefix = a_prefix
     else:
         a_prefix = 0
         b_prefix = 0
 
-    # differing bit
-    diff_bit = 1 << (m - k)  # 1
+    diff_bit = 1 << (m - k)
 
-    # tails
     if k < (m - 1):
         a_tail = 1 << (m - k - 2) | random.getrandbits(m - k - 2)
         b_tail = random.getrandbits(m - k - 2)
@@ -84,19 +79,6 @@ def makeCancellationMantissas(fmt: str, d: int) -> tuple[int, int]:
     return a_m, b_m
 
 
-def makeCarryMantissas(fmt: str) -> tuple[int, int]:
-    """
-    Force carry for d = +1
-    """
-
-    m = MANTISSA_BITS[fmt]
-
-    a_m = (1 << m) - 1  # 1.111...111
-    b_m = a_m  # 1.000...001 (LSB set)
-
-    return a_m, b_m
-
-
 def makeNoCancelMantissas(fmt: str) -> tuple[int, int]:
     m = MANTISSA_BITS[fmt]
 
@@ -106,14 +88,11 @@ def makeNoCancelMantissas(fmt: str) -> tuple[int, int]:
     return a_m, b_m
 
 
-def makeNegPMantissas(fmt: str) -> tuple[int, int]:
-    """
-    Shifts b exp down 1 to create cancellation of p bits.
-    """
+def makeCarryMantissas(fmt: str) -> tuple[int, int]:
     m = MANTISSA_BITS[fmt]
 
-    a_m = 0  # A = 1.00...0 (Mantissa 0)
-    b_m = (1 << m) - 1  # B = 1.11...1 (Mantissa all 1s), b_exp = a_exp - 1
+    a_m = (1 << m) - 1  # 1.111...111
+    b_m = a_m  # 1.000...001 (LSB set)
 
     return a_m, b_m
 
