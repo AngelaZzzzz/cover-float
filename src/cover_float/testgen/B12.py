@@ -74,9 +74,8 @@ def makeCancellationMantissas(fmt: str, d: int) -> tuple[int, int]:
 
     # prefix for a and b
     if d == 0:
-        tail = random.getrandbits(m - 2)
-        a_m = 1 << (m - 1) | 1 << (m - 2) | tail
-        b_m = 0 << (m - 1) | 0 << (m - 2) | tail
+        a_m = 1 << (m - 1) | 1 << (m - 2) | random.getrandbits(m - 2)
+        b_m = 0 << (m - 1) | 0 << (m - 2) | random.getrandbits(m - 2)
         return a_m, b_m
     else:
         a_prefix = 1 << (m - 1) | random.getrandbits(k - 1) << (m - k)
@@ -125,7 +124,7 @@ def makeCarryMantissas(fmt: str) -> tuple[int, int]:
     m = MANTISSA_BITS[fmt]
 
     a_m = (1 << m) - 1  # 1.111...111
-    b_m = 1 << (m - 1) | 1  # 1.000...001 (LSB set)
+    b_m = 1  # 1.000...001 (LSB set)
 
     return a_m, b_m
 
