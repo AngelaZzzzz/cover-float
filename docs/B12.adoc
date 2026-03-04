@@ -3,410 +3,248 @@
 :toclevels: 3
 :sectnums:
 
-== B10 Add: Shift
+== B12 Add: Cancellation
 
 Aharoni et al.
 
 === Description
 
-This model tests every possible value for a shift between the input operands.
+This model tests every possible value for cancellation. For the difference between the exponent of the intermediate result and the maximum between the exponent of the intermediate result and the maximum between the exponents of the inputs, test all values in the range:
 
-The difference between the unbiased input exponents is:
+[-p, +1]
 
-* A value smaller than `-(p+4)`
-* All values in the range `[−(p+4), (p+4)]`
-* A value larger than `p+4`
+That is, for two operands `a` and `b` with exponents `a_exp` and `b_exp` and a intermediate result exponent `exp`, we test all cases where `exp` - max(`a_exp`, `b_exp`) takes each value in [-p, +1].
 
-*Number of tests:* 1.5E3
+*Number of tests generated:* 438 (4E2)
 
 *Precisions Supported:* `BF_16`, `FP_16`, `FP_32`, `FP_64`, `FP_128`
 
 *Operations Supported:* Add, Subtract
 
+=== Some Motivation for this Model
+
+Cancellation occurs when the most significant digits of two operands subtract to zero, triggering a massive normalization effort as the hardware shifts out the many leading zeros. In high-performing floating point processors, a Leading Zero Anticipator (LZA) is used to predict the location of the most significant bit of the result to perform normalization. Generating operands that force specific cancellation depths thus tests the accuracy of the LZA, especially for the most difficult edge cases where the depth of cancellation is close to the precision.
+
+=== Notes
+
+All explanation in this document will be done with one instead of both operations because the only difference will be sign assignments. All exponents used in the examples are unbiased exponents.
+
 == Implementation
 
 === Definitions
 
-`max_exp`:: Maximum exponent value based on precision
-`min_exp`:: Minimum exponent value based on precision
 `a`:: Operand 1
 `b`:: Operand 2
+`m`:: Mantissa. Number of bits in mantissa, excluding the hidden 1
+`p`:: Precision. Number of significant bits, including the hidden 1. p = m + 1
+`d`:: The difference between max(a_exp, b_exp) and exponent of the intermediate result. This is the interest of this model, where we test all d's in [-p, +1]
+`k`:: Magnitude of d. Defined as -d in the code since we deal with d = 1 separately
+`a_m`:: Mantissa of `a`
+`b_m`:: Mantissa of `b`
 `a_exp`:: Exponent of operand `a`, generally in `[min_exp, max_exp]`
 `b_exp`:: Exponent of operand `b`, generally in `[min_exp, max_exp]`
-`p`:: Number of significant bits (precision)
+`exp`:: Exponent of the result, generally in `[min_exp, max_exp]`
+`max_exp`:: Maximum exponent value based on precision
+`min_exp`:: Minimum exponent value based on precision
 
-== Background
+=== Design Choices
 
-In floating point addition and subtraction, the processor must first align the significands of the operands so that both values share a common exponent before performing the arithmetic operation (Ercegovac, 418).
+1) Even though Aharoni implied that `a_exp` and `b_exp` can be different, we defined `a_exp` and `b_exp` to be the same for most cases to make controlling cancellation easier. Since we're only interested in the difference between the exponent of the operands and the intermediate result, the difference between `a_exp` and `b_exp` should not be of main concern.
+2) Some mantissas are not randomly generated but are selected based on obvious cases that produce a specific `d`. Again, since we're only interested in the exponents, the randomness of mantissas should not be of main concern.
 
-This alignment is accomplished by shifting the significand of the operand with the smaller exponent until the exponents match. The magnitude of this shift is determined by the difference between the unbiased exponents of the two operands.
+=== General Test Plan
 
-To verify that this shifting mechanism is implemented correctly, this model systematically generates operand pairs such that the difference in their unbiased exponents satisfies one of the following conditions:
-
-[source]
-----
-1) a_exp - b_exp < -(p + 4)
-2) a_exp - b_exp ∈ [-(p + 4), (p + 4)]
-3) a_exp - b_exp > (p + 4)
-----
-
-Where `p` is defined as “the number of significant bits (precision)” (IEEE 754).
-
-These three cases collectively exercise:
-
-* Extreme right shifts (b significantly larger than a)
-* All representable alignment distances within ±(p+4)
-* Extreme left shifts (a significantly larger than b)
-
-By exhausting these regions, the model ensures correct guard, round, and sticky bit behavior across all relevant alignment distances.
-
-== General Procedure
-
-For each test category, exponent values are generated such that the required inequality on:
+General idea:
 
 [source]
 ----
-a_exp - b_exp
+1.sssss11xxx
+1.sssss00xxx
+
+(s = same, x = don't care)
 ----
 
-is strictly enforced.
+When `a_m` and `b_m` have a leading `k-1` number of bits in common, subtracting them would cancel the `k - 1` leading bits and the implicit 1. After normalizing, `exp` will be exactly `k` less than `a_exp` (or `b_exp`). In this way, we can control `d` and loop through `d = [-p, +1]` inside a loop of all formats. Since subtraction makes cancellation, we will have a positive `a` and negative `b` for addition and a positive `a` and positive `b` for subtraction for most cases.
 
-The general structure for test generation is as follows:
+We chose to make the differing bits two bits to avoid borrowing canceling the differing bit.
 
-1. Generate a random exponent `a_exp` within bounds restricted by the desired shift region.
-2. Compute the allowable range for `b_exp` such that the required inequality on `a_exp - b_exp` is satisfied.
-3. Randomly select `b_exp` within its constrained range.
-4. Independently randomize mantissa and sign bits for both operands.
+However, since this approach requires at least one differing bit to ensure we're canceling exactly k bits, we need a new method for `d = -p` as the entire mantissa will be canceled. Since this approach cancels bits, `d = 0, 1` will also need something different.
 
-Because exponent fields are bounded by:
+Thus, we split the tests into four cases:
+1) `d = -p`
+2) `d` = all other `d`'s
+3) `d = 0`
+4) `d = 1`
 
+Only cases 1 and 3 will involve `b_exp` being different from `a_exp` (by 1, specifically). Only case 4 will have different sign assignments for `a` and `b` for addition and subtraction.
+
+== Test Procedure in Detail
+
+=== Case 1
+*Case:* `d = -p`
+*Relevant Functions:* makeNegPMantissas, makeTestVectors
+
+To cancel exactly p bits when we only have `m` bits in the mantissa, we will take advantage of the shifting that happens when `a_exp` and `b_exp` don't match. What this means is that we will set `b_exp` to be 1 less than `a_exp`, so when the hardware aligns `a` and `b` for addition/subtraction, `b` would be shifted right with its leading 1 becoming the `p`th bit we cancel. Since all bits after the mantissa will default to 0, the LSB of `b` will be subtracted from 0. To make this meaningful, the LSB of `b` will be 1. Moreover, we need to construct `a_m` and `b_m` so that the borrowing will cascade from the LSB of `b` until canceling the leading 1 of `a` since the leading 1 of `b` is shifted right to cancel the MSB of `a_m`. Therefore, we set `a_m` to be 0, and `b_m` to be all 1's.
+
+Example:
+We have two operands in `FP_16`, each with a 10-bit mantissa. We're aiming to cancel 11 bits.
 [source]
 ----
-min_exp ≤ exponent ≤ max_exp
+a = 1.0000_0000_00 (a_exp = 10)
+b = 1.1111_1111_11 (b_exp = 9)
 ----
 
-careful restriction of `a_exp` is required to guarantee that a corresponding valid `b_exp` always exists that satisfies the inequality constraint.
-
-For bounded-range testing (i.e., when generating all values in `[−(p+4), (p+4)]`), deterministic incrementing or decrementing of `b_exp` is used to exhaustively enumerate every valid exponent difference.
-
-For extreme-region testing (i.e., values strictly less than `-(p+4)` or strictly greater than `(p+4)`), exponent bounds are tightened such that the inequality is satisfied even in worst-case boundary conditions involving `max_exp` or `min_exp`.
-
-This structured generation guarantees:
-
-* Full coverage of all shift magnitudes relevant to rounding correctness
-* Proper testing of boundary exponent conditions
-* Valid IEEE 754 representable exponent values
-
-== Test Procedure
-
-=== Test 1
-*Objective:* A value smaller than `-(p+4)`
-*Operations:* Add, Subtract
-
-To cover this test, the inequality:
-
+The FPU aligns the operands for subtraction:
 [source]
 ----
-a_exp - b_exp < -(p + 4)
+a = 1.0000_0000_00   (a_exp = 10)
+b = 0.1111_1111_11 1 (b_exp = 10)
 ----
 
-must be satisfied.
-
-Given this inequality, we first determine the allowable range for `a_exp`.
-
-The lower bound on `a_exp` must be `min_exp`, because we can always find a value larger than `min_exp` such that the difference satisfies the inequality.
-
-To determine the upper bound of `a_exp`, consider the maximum possible values of both exponents:
-
+The subtraction results in the intermediate result:
 [source]
 ----
-a_exp = max_exp
-b_exp = max_exp
+r = 0.0000_0000_00 1 (exp = 10)
 ----
 
-This gives:
-
+Which then gets normalized to:
 [source]
 ----
-a_exp - b_exp = 0
+r = 1.0000_0000_00   (exp = -1)
 ----
+Giving us our desired exponent difference of `max(a_exp, b_exp) - exp = 10 - (-1) = 11`.
 
-which does *not* satisfy the inequality.
+=== Case 2
+*Case:* `d` = all other `d`'s
+*Relevant Functions:* makeCancellationMantissas, makeTestVectors
 
-Therefore, we must decrease `a_exp` sufficiently such that even in the extreme case where:
+This case best reflects the general idea. Since we want to cancel `k - 1` bits in the mantissa (recall that the implicit 1 is also canceled), we will generate `k - 1` random bits as the prefix for both `a_m` and `b_m`. In `a_m`, this prefix will be followed by `11`, and `00` in `b_m`. The rest of `a_m` and `b_m` will be randomly generated. The detailed arithmetics in the code involves edge cases such as `k = 1, (m-1), m` that are handled by if statements.
 
+Example:
+We have two operands in `FP_32`, each with a 23-bit mantissa. We're aiming to cancel 9 bits.
 [source]
 ----
-b_exp = max_exp
+m = 23
+d = -9
+k = 9
+a = 1.0101_1011_1111_1011_1111_001 (a_exp = 20)
+b = 1.0101_1011_0001_0111_1001_100 (b_exp = 20)
 ----
 
-the inequality is still satisfied.
-
-If:
-
+The subtraction results in the intermediate result:
 [source]
 ----
-a_exp = max_exp - (p + 5)
+r = 0.0000_0000_1110_0100_0101_101 (exp = 20)
 ----
 
-then:
-
+Which then gets normalized to:
 [source]
 ----
-(max_exp - (p + 5)) - max_exp = -(p + 5)
+r = 1.1100_1000_1011_0100_0000_000   (exp = 11)
 ----
+Giving us our desired exponent difference of `max(a_exp, b_exp) - exp = 20 - 11 = 9`.
 
-which satisfies:
+=== Case 3
+*Case:* `d = 0`
+*Relevant Functions:* makeNoCancelMantissas, makeTestVectors
 
+In this case, we don't want anything to cancel. This is difficult because the implicit 1 will cancel regardless of our mantissa, triggering a normalization. However, we can keep the implicit 1 of `a` by shifting the implicit 1 of `b` to the right. Just like case 1, this would involve setting `b_exp` to be 1 less than `a_exp`. For simplicity, we defined `a_m` to be all 1's, and `b_m` to be all 1's except the LSB, so that when the LSB shifts right and gets subtracted, it does not create the borrow propagation as in case 1.
+
+Example:
+We have two operands in `FP_16`, each with a 10-bit mantissa. We're aiming to cancel 0 bits.
 [source]
 ----
-a_exp - b_exp < -(p + 4)
+a = 1.1111_1111_11 (a_exp = 10)
+b = 1.1111_1111_10 (b_exp = 9)
 ----
 
-Therefore, the valid range for `a_exp` is:
-
+The FPU aligns the operands for subtraction:
 [source]
 ----
-a_exp ∈ [min_exp, max_exp - (p + 5)]
+a = 1.1111_1111_11   (a_exp = 10)
+b = 0.1111_1111_11 0 (b_exp = 10)
 ----
 
-Within this range, `a_exp` is randomly generated.
-
----
-
-With `a_exp` determined, we now restrict `b_exp` such that:
-
+The subtraction results in the intermediate result:
 [source]
 ----
-a_exp - b_exp < -(p + 4)
+r = 1.0000_0000_00 (exp = 10)
 ----
 
-Rewriting:
+Which will be the final result since there is no normalization required, giving us our desired exponent difference of `max(a_exp, b_exp) - exp = 10 - 10 = 0`.
 
+=== Case 4
+*Case:* `d = 1`
+*Relevant Functions:* makeCarryMantissas, makeTestVectors
+
+This case requires a carry, which is only achievable through adding positive numbers or subtracting a negative number. This means that the sign assignments must now be positive `a` and positive `b` for addition, and positive `a` and negative `b` for subtraction. Moreover, `a_m` and `b_m` must be able to create a carry when added together. For simplicity, we decided to set both `a_m` and `b_m` to the largest number (all 1's) to guarantee a carry.
+
+Example:
+We have two operands in `FP_16`, each with a 10-bit mantissa. We're aiming to cancel -1 bits.
 [source]
 ----
-b_exp > a_exp + (p + 4)
+a = 1.1111_1111_11 (a_exp = 10)
+b = 1.1111_1111_11 (b_exp = 10)
 ----
 
-We begin by examining the most extreme case:
-
+The addition results in the intermediate result:
 [source]
 ----
-a_exp = max_exp - (p + 5)
+r = 11.1111_1111_10 (exp = 10)
 ----
 
-In this case, the only possible value of `b_exp` that satisfies the inequality is:
-
+Which then gets normalized to:
 [source]
 ----
-b_exp = max_exp
+r = 1.1111_1111_11   (exp = 11)
 ----
-
-More generally, the number of allowable values for `b_exp` is:
-
-[source]
-----
-possible_values = (max_exp - (p + 5)) - a_exp
-----
-
-These possible values must be subtracted from `max_exp` to determine the lower bound of `b_exp`.
-
-Thus, the valid range of `b_exp` is:
-
-[source]
-----
-b_exp ∈ [max_exp - possible_values, max_exp]
-----
-
-`b_exp` is then randomly generated within this restricted range.
-
-Both mantissa and sign bits are randomized independently.
-
----
-
-=== Test 2
-*Objective:* All values in the range `[−(p+4), (p+4)]`
-*Operations:* Add, Subtract
-
-To cover this test:
-
-[source]
-----
-a_exp - b_exp ∈ [-(p + 4), (p + 4)]
-----
-
-This test is divided into two symmetric procedures to exhaustively generate all values in the range.
-
----
-
-==== Part A: Generate values in `[−(p+4), 0]`
-
-We begin by generating:
-
-[source]
-----
-a_exp - b_exp = 0
-----
-
-This is accomplished by:
-
-[source]
-----
-b_exp = a_exp
-----
-
-We then increment `b_exp` until:
-
-[source]
-----
-a_exp - b_exp = -(p + 4)
-----
-
-To ensure we can increment `b_exp` exactly `p + 4` times without exceeding `max_exp`, the upper bound of `a_exp` must be:
-
-[source]
-----
-max_exp - (p + 4)
-----
-
-Since we are not decrementing below `a_exp`, the lower bound remains:
-
-[source]
-----
-min_exp
-----
-
-Thus:
-
-[source]
-----
-a_exp ∈ [min_exp, max_exp - (p + 4)]
-----
-
-Procedure:
-
-1. Randomly generate `a_exp` in the valid range.
-2. Set `b_exp = a_exp`.
-3. Generate a test vector.
-4. Increment `b_exp`.
-5. Repeat until:
-
-[source]
-----
-a_exp - b_exp = -(p + 4)
-----
-
-The loop executes `p + 5` times to account for the initial equality case.
-
----
-
-==== Part B: Generate values in `[1, (p+4)]`
-
-To generate the negative portion of the range, we reverse the direction.
-
-We begin with:
-
-[source]
-----
-b_exp = a_exp - 1
-----
-
-Then decrement `b_exp` until:
-
-[source]
-----
-a_exp - b_exp = (p + 4)
-----
-
-Since `b_exp` will be decremented `p + 4` times, we must ensure that `a_exp` is sufficiently above `min_exp`.
-
-Thus, the lower bound for `a_exp` becomes:
-
-[source]
-----
-min_exp + p + 4
-----
-
-There is no concern of exceeding `max_exp`, so the upper bound is:
-
-[source]
-----
-max_exp
-----
-
-Therefore:
-
-[source]
-----
-a_exp ∈ [min_exp + p + 4, max_exp]
-----
-
-Procedure:
-
-1. Randomly generate `a_exp` in the valid range.
-2. Set `b_exp = a_exp - 1`.
-3. Generate a test vector.
-4. Decrement `b_exp`.
-5. Repeat until:
-
-[source]
-----
-a_exp - b_exp = (p + 4)
-----
-
-The loop executes `p + 4` times.
-
----
-
-Both parts together exhaustively generate:
-
-[source]
-----
-a_exp - b_exp ∈ [-(p + 4), (p + 4)]
-----
-
-Mantissa and sign bits are randomized independently for each generated vector.
+Giving us our desired exponent difference of `max(a_exp, b_exp) - exp = 10 - 11 = -1`.
 
 == Test Count Breakdown
 
-[cols="1,1,1,1,1,1",options="header"]
+[cols="1,1,1,1,1,1,1",options="header"]
 |===
-| Precision | p | Test 1 (< -(p+4)) | Test 2 (Range) | Test 3 (> p+4) | Total
+| Precision | p | Case 1 (`d = -p`) | Case 2 (all other `d`'s) | Case 3 (`d = 0`) | Case 4 (`d = 1`) | Total
 
 | BF_16
 | 8
 | 1
-| 25
+| 7
 | 1
-| 27
+| 1
+| 10
 
 | FP_16
 | 11
 | 1
-| 31
+| 10
 | 1
-| 33
+| 1
+| 13
 
 | FP_32
 | 24
 | 1
-| 57
+| 23
 | 1
-| 59
+| 1
+| 26
 
 | FP_64
 | 53
 | 1
-| 115
+| 52
 | 1
-| 117
+| 1
+| 55
 
 | FP_128
 | 113
 | 1
-| 235
+| 112
 | 1
-| 237
+| 1
+| 115
 |===
 
 === Overall Test Count
@@ -415,9 +253,9 @@ Mantissa and sign bits are randomized independently for each generated vector.
 |===
 | Description | Value
 
-| Total shift tests
-| 473
+| Total cancellation tests
+| 219
 
 | Accounting for Add and Subtract (×2)
-| 946
+| 438
 |===
