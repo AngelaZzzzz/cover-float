@@ -1,6 +1,7 @@
 """
 Angela Zheng
-February 12, 2026
+
+March 3, 2026
 
 SUMMARY
 This script generates test vectors for the B2 model: Near FP Base Values - Hamming Distance.
@@ -9,7 +10,7 @@ small deviations by flipping one bit of the significand at a time.
 
 DEFINITION
 Base Values: Zero, One, MinSubNorm, MaxSubNorm, MinNorm, MaxNorm
-Operations: Randomly selected from FP suite
+Operations: add, sub, multiply, fmadd, fmsub, fnmadd, fnmsub, sqrt
 Total test vectors generated: TBD
 """
 
@@ -34,6 +35,13 @@ from cover_float.common.constants import (
 )
 from cover_float.reference import run_and_store_test_vector
 
+THREE_OP_OPS = [
+    OP_FMADD,
+    OP_FMSUB,
+    OP_FNMADD,
+    OP_FNMSUB,
+]
+
 ALL_OPS = [
     OP_ADD,
     OP_SUB,
@@ -47,9 +55,9 @@ ALL_OPS = [
 ]
 
 
-def get_base_values(fmt: str) -> dict[str, int]:
+def getBaseValues(fmt: str) -> dict[str, int]:
     """
-    Returns a dictionary of raw integer representations for FP boundaries.
+    exponent bits + mantissa
     """
     m = MANTISSA_BITS[fmt]
     e = EXPONENT_BITS[fmt]
@@ -66,13 +74,37 @@ def get_base_values(fmt: str) -> dict[str, int]:
     return bases
 
 
-def write_vector(op: str, fmt: str, a_hex: str, b_hex: str, c_hex: str, test_f: TextIO, cover_f: TextIO) -> None:
-    # Using 'a' as the primary Hamming test subject, 'b' and 'c' as random/dummy
+def generateOperands(
+    op: str, fmt: str, a_hex: str, sign: int, total_bits: int, test_f: TextIO, cover_f: TextIO
+) -> None:
+    """Handles logic for B and C operands and writes the final vector."""
+    # Skip sqrt for negative values
+    if op == OP_SQRT and sign == 1:
+        return
+
+    b_hex = f"{random.getrandbits(total_bits):032X}"
+    c_hex = f"{random.getrandbits(total_bits):032X}" if op in THREE_OP_OPS else f"{0:032X}"
+
     run_and_store_test_vector(
         f"{op}_{ROUND_NEAR_EVEN}_{a_hex}_{b_hex}_{c_hex}_{fmt}_{fmt}_{fmt}_00",
         test_f,
         cover_f,
     )
+
+
+def hammingProcessor(base_val: int, fmt: str, total_bits: int, test_f: TextIO, cover_f: TextIO) -> None:
+    """Flips significand bits and iterates through all operations."""
+    m_width = MANTISSA_BITS[fmt]
+
+    for sign in [0, 1]:
+        signed_base = base_val | (sign << (total_bits - 1))
+
+        for bit_pos in range(m_width):
+            test_val = signed_base ^ (1 << bit_pos)
+            a_hex = f"{test_val:032X}"
+
+            for op in ALL_OPS:
+                generateOperands(op, fmt, a_hex, sign, total_bits, test_f, cover_f)
 
 
 def main() -> None:
@@ -81,29 +113,11 @@ def main() -> None:
         Path("./tests/covervectors/B2_cv.txt").open("w") as cover_f,
     ):
         for fmt in FLOAT_FMTS:
-            m_width = MANTISSA_BITS[fmt]
             total_bits = 1 + EXPONENT_BITS[fmt] + MANTISSA_BITS[fmt]
-            bases = get_base_values(fmt)
+            bases = getBaseValues(fmt)
 
-            for _, base_val in bases.items():
-                for sign in [0, 1]:
-                    # Apply sign bit
-                    sign_shifted = sign << (total_bits - 1)
-                    signed_base = base_val | sign_shifted
-
-                    # Flip every bit position in the significand (Hamming Distance 1)
-                    for bit_pos in range(m_width):
-                        test_val = signed_base ^ (1 << bit_pos)
-
-                        # Formatting to 32-char hex (standardizing for the test runner)
-                        a_hex = f"{test_val:032X}"
-
-                        # Generate random secondary operands and operation
-                        op = random.choice(ALL_OPS)
-                        b_hex = f"{random.getrandbits(total_bits):032X}"
-                        c_hex = f"{random.getrandbits(total_bits):032X}"
-
-                        write_vector(op, fmt, a_hex, b_hex, c_hex, test_f, cover_f)
+            for base_val in bases.values():
+                hammingProcessor(base_val, fmt, total_bits, test_f, cover_f)
 
 
 if __name__ == "__main__":
