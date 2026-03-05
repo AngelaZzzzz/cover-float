@@ -13,3 +13,15 @@ def generate_float(sign: int, exponent: int, mantissa: int, fmt: str) -> int:
         | (exponent << constants.MANTISSA_BITS[fmt])
         | mantissa
     )
+
+
+def reproducible_hash(s: str) -> int:
+    """
+    Return a simple hash of a string for use as a random seed.
+
+    Python randomizes hashes by default, but we need a repeatable hash for repeatable test cases.
+    """
+    h = 0
+    for c in s:
+        h = (h * 31 + ord(c)) & 0xFFFFFFFF
+    return h

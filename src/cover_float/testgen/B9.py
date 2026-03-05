@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TextIO
 
 import cover_float.common.constants as constants
-from cover_float.common.util import generate_float, generate_test_vector
+from cover_float.common.util import generate_float, generate_test_vector, reproducible_hash
 from cover_float.reference import run_and_store_test_vector
 
 B9_1SRC = [constants.OP_SQRT]
@@ -182,6 +182,8 @@ def main() -> None:
         Path("tests/covervectors/B9_cv.txt").open("w") as cover_f,
     ):
         for fmt in constants.FLOAT_FMTS:
+            hashval = reproducible_hash(fmt + "b9")
+            random.seed(hashval)
             generator = B9SignificandGenerator(constants.MANTISSA_BITS[fmt])
             sigs = generator.generate()
 
