@@ -18,7 +18,7 @@ B9_2SRC = [
 
 
 class B9SignificandGenerator:
-    def __init__(self, nf: int) -> None:
+    def __init__(self, nf: int, seed: str) -> None:
         """Initialize B9 Significand Generation With the Default Generators"""
         self.nf = nf
         self.lead_trail_lengths = [
@@ -33,6 +33,8 @@ class B9SignificandGenerator:
             2,
             1,
         ]
+        self.seed = seed
+        random.seed(reproducible_hash(seed))
 
         # 0, nf - 1, nf/2, nf/2 - 2, powers of 2, random to fill 10
         one_sparse_positions = [[0], [nf - 1], [math.ceil(nf / 2)], [math.ceil(nf / 2 - 1)]]
@@ -81,6 +83,8 @@ class B9SignificandGenerator:
         return sorted(list(set(ans)))
 
     def generate_leading_and_trailing(self) -> list[str]:
+        random.seed(reproducible_hash(self.seed + "leading/trailing"))
+
         def with_n_leading_zeros(n: int) -> str:
             mantissa = "0" * n + "1" + bin(random.getrandbits(self.nf))[2:]
             return mantissa[: self.nf]
@@ -100,29 +104,35 @@ class B9SignificandGenerator:
         return ans
 
     def generate_sparse(self) -> list[str]:
-        ans: list[str] = []
+        random.seed(reproducible_hash(self.seed + "sparse"))
+
+        answer: list[str] = []
 
         for positions in self.sparse_positions:
             as_list = ["0" for _ in range(self.nf)]
             for i in positions:
                 as_list[i] = "1"
 
-            ans.append("".join(as_list))
-            ans.append(self.swap_ones_and_zeros("".join(as_list)))
+            answer.append("".join(as_list))
+            answer.append(self.swap_ones_and_zeros("".join(as_list)))
 
-        return ans
+        return answer
 
     def generate_checkerboards(self) -> list[str]:
-        ans: list[str] = []
+        random.seed(reproducible_hash(self.seed + "checkerboard"))
+
+        answer: list[str] = []
 
         for run_length, offset in self.checkerboards:
             pattern = ("1" * run_length + "0" * run_length) * (self.nf + 2)
-            ans.append(pattern[offset : offset + self.nf])
+            answer.append(pattern[offset : offset + self.nf])
 
-        return ans
+        return answer
 
     def generate_long_runs(self) -> list[str]:
-        ans: list[str] = []
+        random.seed(reproducible_hash(self.seed + "long runs"))
+
+        answer: list[str] = []
 
         for run_length, start in self.long_runs:
             one_run_list = list(bin(random.getrandbits(self.nf))[2:].zfill(self.nf))
@@ -132,7 +142,7 @@ class B9SignificandGenerator:
             one_run_list[start + run_length] = "0"
             for i in range(start, start + run_length):
                 one_run_list[i] = "1"
-            ans.append("".join(one_run_list))
+            answer.append("".join(one_run_list))
 
             zero_run_list = list(bin(random.getrandbits(self.nf))[2:].zfill(self.nf))
 
@@ -141,9 +151,9 @@ class B9SignificandGenerator:
             zero_run_list[start + run_length] = "0"
             for i in range(start, start + run_length):
                 zero_run_list[i] = "1"
-            ans.append("".join(zero_run_list))
+            answer.append("".join(zero_run_list))
 
-        return ans
+        return answer
 
     def generate(self) -> list[str]:
         return [
@@ -155,8 +165,13 @@ class B9SignificandGenerator:
 
 
 def B9_generator(sigs: list[str], fmt: str, test_f: TextIO, cover_f: TextIO) -> None:
-    exp_max = 2 ** (constants.EXPONENT_BITS[fmt] - 2)
-    exp_min = -(2 ** (constants.EXPONENT_BITS[fmt] - 2))
+    exp_min, exp_max = constants.BIASED_EXP[fmt]
+    exp_max -= constants.BIAS[fmt]
+    exp_min -= constants.BIAS[fmt]
+
+    # Make it impossible to overflow or underflow with multiplication or division
+    exp_max //= 2
+    exp_min //= 2
 
     for op in [*B9_1SRC, *B9_2SRC]:
         for sig1 in sigs:
@@ -173,6 +188,9 @@ def B9_generator(sigs: list[str], fmt: str, test_f: TextIO, cover_f: TextIO) -> 
                 tv = generate_test_vector(op, float1, float2, 0, fmt, fmt, random.choice(constants.ROUNDING_MODES))
                 run_and_store_test_vector(tv, test_f, cover_f)
 
+                if op in B9_1SRC:
+                    break  # Don't over generate tests
+
 
 def main() -> None:
     with (
@@ -180,11 +198,7 @@ def main() -> None:
         Path("tests/covervectors/B9_cv.txt").open("w") as cover_f,
     ):
         for fmt in constants.FLOAT_FMTS:
-            hashval = reproducible_hash(fmt + "b9")
-            random.seed(hashval)
-            generator = B9SignificandGenerator(constants.MANTISSA_BITS[fmt])
+            generator = B9SignificandGenerator(constants.MANTISSA_BITS[fmt], fmt + "b9")
             sigs = generator.generate()
-
-            print(fmt, len(sigs))
 
             B9_generator(sigs, fmt, test_f, cover_f)

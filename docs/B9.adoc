@@ -24,19 +24,13 @@ This model tests special patterns in the significands of the input operands. Eac
 8. Long sequences of 1s
 9. Long sequences of 0s
 
-*Operations Supported*: Divide, Square-root, Multiply
+*Operations Supported*: Divide, Square Root, Remainder, Multiply
 
 *Precisions Supported*: BF_16, F16, F32, F64, F128
 
-== Implementation
+== Background
 
-=== Some Notes on the Number of Special Significands and Coverpoints
-
-This is an incredibly vague coverpoint. Reasonably, you could ask that we cover up to stem:[10^{10}] coverpoints (as Aharoni gives as an upper bound in the paper). Practically, the upper limit of what we can fit into a floating point test is something on the order of 10000 cases per precision and operation. So, we must make sacrifices to get significands in this ballpark. The coverpoint asks for special patterns in each significands, meaning we only have about 100 special significands that we can generate for our cross.
-
-=== What Are We Actually Covering?
-
-These are fairly generic tough cases for most of the complicated or hot circuits in an FPU. For the most part, these are going to generate edge cases, and some relevant rationales for each is listed below.
+These tests are fairly generic tough cases for most of the complicated or hot circuits in an FPU. For the most part, these are going to generate edge cases, and some relevant rationales for each is listed below.
 
 Leading and trailing ones and zeros can give the LZA complicated cases and create difficult rounding cases. We are going to need cases that line up nicely when we add too, so having significands with small numbers of leading zeros and ones alongside a large number of trailing ones or zeros is of interest. Along with long runs, these can also ensure that long carry chains are tested.
 
@@ -44,31 +38,22 @@ Checkerboards will stress the fsqrtdiv algorithm's quotient selection block as i
 
 Sparse inputs will create cases where shifts are especially stressed. Sticky calculation must be correct because one bit is responsible for it, and any signals that involve ORs or ANDs across a large number of bits are going to be tested for correctness. In cases with 2 bits, we can create multiple independent carry chains (in conjunction with other significands). And there are many other small goals that these inputs can be seen as achieving.
 
+== Implementation
+
+=== Some Notes on the Number of Special Significands and Coverpoints
+
+This is an incredibly vague coverpoint. Reasonably, you could ask that we cover up to stem:[10^{10}] coverpoints (as Aharoni gives as an upper bound in the paper). Practically, the upper limit of what we can fit into a floating point test is something on the order of tens to hundreds of thousands of cases per precision and operation. So, we must make sacrifices to get significands in this ballpark. The coverpoint asks for special patterns in each significands, meaning we only have about 100 special significands that we can generate for our cross.
+
+
 === Generating Special Significands
 
-Not all cases have the same amount of importance in our testing. In the modern world, the significance of testing checkerboard significands is not great. Goals 5 and 6 should be covered by other test cases as a large sequence of trailing zeros creates the necessary imbalance. 5 and 6 take away structure, so they are valuable to include, just at a lower precedence than the other tests. The most important things to get seem to be goals 1-4, then focusing on a few checkerboards, a few more long sequences, and a few more random imbalanced significands. 100 is a much smaller number than it sounds, so we will be judicious in how we allocate our tests.
-
-Significand generation is controlled by 3 parameters.
-
-1. The number of significands to generate
-2. The frequencies we want each of the 9 goals to be at
-3. The format of the float we want
+Not all cases have the same amount of importance in our testing. The goals behind checkerboards can be achieved with a few significands while other goals are more demanding of our space.
 
 === Generating Coverage
 
 The significands we want to generate are modular, so unfortunately, we need to generate the bins with code. In other modules we use ``bins_template/*.svh`` as a reusable template for bins, and I think that generating a similar file in code would work well, with the rest of the covergroup being written by hand.
 
 === Test Plan
-
-// Leading ones and zeros will create cases where the LZA is stressed in cases where it exists (this is for the ADD, SUB, and FMA). Trailing ones and zeros can also cause problems in effective subtraction cases as long borrow chains can have propagation bugs. So, test cases 1-4 have this specific impact. Long sequences of ones also create cases where carries have to ripple across a large number of bits, justifying cases 8 and 9.
-
-
-// Large numbers of leading ones and zeros tend to generate cases that will stress systems like the LZA, with cases where it has to account for massive cancellation.
-
-
-// For add-type instructions, the structure of significand matters most in what happens during ripple carries and cancellation cases. Long sequences of one can stress the ripple carry as they force a one to propagate all the way down a chain, and leading and trailing zeros and ones tend to complicate the logic in LZA circuits.
-
-// For div and sqrt, the algorithms are driven by circuits basically functioning as a lookup-table. The famous Intel Pentium fdiv error was in the lookup table in its division algorithm. Generally, checkerboard patterns and sparse patterns tend to stress out this logic.
 
 Our test plan is going to be the following (any bits not explicitly set should be be randomized):
 
@@ -106,3 +91,67 @@ Long Runs of Zeros and Ones:
 * This totals up to 26 cases
 
 Total: Up to 100 Significands
+
+== Test Count Breakdown
+|===
+| Precision | Leading/Trailing Ones/Zeros | Sparse Inputs | Checkerboards | Long Runs of Ones/Zeros | Total Significands | Total Pairs
+
+| BF16
+| 42
+| 20
+| 6
+| 8
+| 76
+| 5776
+
+| F16
+| 42
+| 26
+| 6
+| 12
+| 86
+| 7396
+
+| F32
+| 42
+| 26
+| 6
+| 24
+| 98
+| 9604
+
+| F64
+| 42
+| 26
+| 6
+| 26
+| 100
+| 10000
+
+| F128
+| 42
+| 26
+| 6
+| 26
+| 100
+| 10000
+
+=== Overall Test Count
+
+|===
+| Description | Value
+
+| Total Mul Tests
+| 42776
+
+| Total Div Tests
+| 42776
+
+| Total Rem Tests
+| 42776
+
+| Total Sqrt Tests
+| 460
+
+| Total Tests
+| 128788
