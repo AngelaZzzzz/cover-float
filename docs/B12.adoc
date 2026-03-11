@@ -19,7 +19,7 @@ That is, for two operands `a` and `b` with exponents `a_exp` and `b_exp` and a i
 
 *Operations Supported:* Add, Subtract
 
-=== Some Motivation for this Model
+=== Background
 
 Cancellation occurs when the most significant digits of two operands subtract to zero, triggering a massive normalization effort as the hardware shifts out the many leading zeros. In high-performing floating point processors, a Leading Zero Anticipator (LZA) is used to predict the location of the most significant bit of the result to perform normalization. Generating operands that force specific cancellation depths thus tests the accuracy of the LZA, especially for the most difficult edge cases where the depth of cancellation is close to the precision.
 
@@ -50,7 +50,7 @@ All explanation in this document will be done with one instead of both operation
 . Even though Aharoni implied that `a_exp` and `b_exp` can be different, we defined `a_exp` and `b_exp` to be the same for most cases to make controlling cancellation easier. Since we're only interested in the difference between the exponent of the operands and the intermediate result, the difference between `a_exp` and `b_exp` should not be of main concern.
 . Mantissas for `d = -p, 0, 1` are not randomly generated but are selected based on obvious cases that produce that specific `d`. Again, since we're only interested in the exponents, we should not be concerned with generating all mantissas randomly.
 
-=== General Test Plan
+=== General Procedure
 
 General idea:
 
@@ -76,7 +76,7 @@ Thus, we split the tests into four cases:
 
 Only cases 1 and 3 will involve `b_exp` being different from `a_exp` (by 1, specifically). Only case 4 will have different sign assignments for `a` and `b` for addition and subtraction.
 
-== Test Procedure in Detail
+== Specific Test Procedure
 
 === Case 1
 *Case:* `d = -p` +
