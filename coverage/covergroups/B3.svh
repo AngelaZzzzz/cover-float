@@ -33,20 +33,38 @@ covergroup B3_cg (virtual coverfloat_interface CFI);
         bins neg = {1};
     }
 
+    interm_sign: coverpoint CFI.intermS {
+        type_option.weight = 0;
+        bins pos = {0};
+        bins neg = {1};
+    }
 
-    F16_LSB:  coverpoint CFI.intermM[INTERM_M_BITS - F16_M_BITS] {
+
+    F16_LSB:   coverpoint CFI.intermM[INTERM_M_BITS - F16_M_BITS     ] {
         type_option.weight = 0;
     }
-    F32_LSB:  coverpoint CFI.intermM[INTERM_M_BITS - F32_M_BITS] {
+    F32_LSB:   coverpoint CFI.intermM[INTERM_M_BITS - F32_M_BITS     ] {
         type_option.weight = 0;
     }
-    F64_LSB:  coverpoint CFI.intermM[INTERM_M_BITS - F64_M_BITS] {
+    F64_LSB:   coverpoint CFI.intermM[INTERM_M_BITS - F64_M_BITS     ] {
         type_option.weight = 0;
     }
-    F128_LSB: coverpoint CFI.intermM[INTERM_M_BITS - F128_M_BITS] {
+    F128_LSB:  coverpoint CFI.intermM[INTERM_M_BITS - F128_M_BITS    ] {
         type_option.weight = 0;
     }
-    BF16_LSB: coverpoint CFI.intermM[INTERM_M_BITS - BF16_M_BITS] {
+    BF16_LSB:  coverpoint CFI.intermM[INTERM_M_BITS - BF16_M_BITS    ] {
+        type_option.weight = 0;
+    }
+    int_LSB:   coverpoint CFI.intermM[INTERM_M_BITS - SIZEOF_INT     ] {
+        type_option.weight = 0;
+    }
+    uint_LSB:  coverpoint CFI.intermM[INTERM_M_BITS - SIZEOF_INT - 1 ] {
+        type_option.weight = 0;
+    }
+    long_LSB:  coverpoint CFI.intermM[INTERM_M_BITS - SIZEOF_LONG    ] {
+        type_option.weight = 0;
+    }
+    ulong_LSB: coverpoint CFI.intermM[INTERM_M_BITS - SIZEOF_LONG - 1] {
         type_option.weight = 0;
     }
 
@@ -66,6 +84,18 @@ covergroup B3_cg (virtual coverfloat_interface CFI);
     BF16_guard: coverpoint CFI.intermM[INTERM_M_BITS - BF16_M_BITS - 1] {
         type_option.weight = 0;
     }
+    int_guard:  coverpoint CFI.intermM[INTERM_M_BITS - SIZEOF_INT - 1 ] {
+        type_option.weight = 0;
+    }
+    uint_guard: coverpoint CFI.intermM[INTERM_M_BITS - SIZEOF_INT - 2 ] {
+        type_option.weight = 0;
+    }
+    long_guard: coverpoint CFI.intermM[INTERM_M_BITS - SIZEOF_LONG - 1] {
+        type_option.weight = 0;
+    }
+    ulong_guard: coverpoint CFI.intermM[INTERM_M_BITS - SIZEOF_LONG - 2] {
+        type_option.weight = 0;
+    }
 
 
     F16_sticky:  coverpoint |CFI.intermM[INTERM_M_BITS - F16_M_BITS - 2 : 0] {
@@ -81,6 +111,18 @@ covergroup B3_cg (virtual coverfloat_interface CFI);
         type_option.weight = 0;
     }
     BF16_sticky: coverpoint |CFI.intermM[INTERM_M_BITS - BF16_M_BITS - 2 : 0] {
+        type_option.weight = 0;
+    }
+    int_sticky:  coverpoint |CFI.intermM[INTERM_M_BITS - SIZEOF_INT - 1 : 0] {
+        type_option.weight = 0;
+    }
+    uint_sticky: coverpoint |CFI.intermM[INTERM_M_BITS - SIZEOF_INT - 2  : 0] {
+        type_option.weight = 0;
+    }
+    long_sticky: coverpoint |CFI.intermM[INTERM_M_BITS - SIZEOF_LONG - 1 : 0] {
+        type_option.weight = 0;
+    }
+    ulong_sticky: coverpoint |CFI.intermM[INTERM_M_BITS - SIZEOF_LONG - 2] {
         type_option.weight = 0;
     }
 
@@ -143,6 +185,31 @@ covergroup B3_cg (virtual coverfloat_interface CFI);
         `endif // COVER_LONG
     }
 
+    FP_convert_fmt: coverpoint CFI.operandFmt {
+        type_option.weight = 0;
+        // all formats to convert to
+
+        `ifdef COVER_F16
+            bins fmt_half   = {FMT_HALF};
+        `endif // COVER_F16
+
+        `ifdef COVER_F32
+            bins fmt_single = {FMT_SINGLE};
+        `endif // COVER_F32
+
+        `ifdef COVER_F64
+            bins fmt_double = {FMT_DOUBLE};
+        `endif // COVER_F64
+
+        `ifdef COVER_F128
+            bins fmt_quad   = {FMT_QUAD};
+        `endif // COVER_F128
+
+        `ifdef COVER_BF16
+            bins fmt_bf16   = {FMT_BF16};
+        `endif // COVER_BF16
+    }
+
     F16_result_fmt: coverpoint CFI.resultFmt == FMT_HALF {
         type_option.weight = 0;
         // half precision format for result
@@ -173,13 +240,49 @@ covergroup B3_cg (virtual coverfloat_interface CFI);
         bins f128 = {1};
     }
 
+    int_result_fmt : coverpoint CFI.resultFmt == FMT_INT {
+        type_option.weight = 0;
+        // int format for result
+        bins fmt_int = {1};
+    }
+    uint_result_fmt : coverpoint CFI.resultFmt == FMT_UINT {
+        type_option.weight = 0;
+        // uint format for result
+        bins fmt_uint = {1};
+    }
+    long_result_fmt : coverpoint CFI.resultFmt == FMT_LONG {
+        type_option.weight = 0;
+        // long format for result
+        bins fmt_long = {1};
+    }
+    ulong_result_fmt : coverpoint CFI.resultFmt == FMT_ULONG {
+        type_option.weight = 0;
+        // ulong format for result
+        bins fmt_ulong = {1};
+    }
+
     // main coverpoints
+
+    B3_int_convert:  cross FP_convert_ops, rounding_mode_all, interm_sign,  int_LSB,  int_guard,  int_sticky, FP_convert_fmt,  int_result_fmt;
+    B3_uint_convert: cross FP_convert_ops, rounding_mode_all, interm_sign, uint_LSB, uint_guard, uint_sticky, FP_convert_fmt, uint_result_fmt;
+
+    `ifdef COVER_LONG
+    B3_long_convert:  cross FP_convert_ops, rounding_mode_all, interm_sign,  long_LSB,  int_guard,  long_sticky, FP_convert_fmt,  long_result_fmt;
+    B3_ulong_convert: cross FP_convert_ops, rounding_mode_all, interm_sign, ulong_LSB, uint_guard, ulong_sticky, FP_convert_fmt, ulong_result_fmt;
+    `endif // COVER_LONG
+
     `ifdef COVER_F32
         B3_F32_arith:  cross FP_arith_ops, rounding_mode_all, F32_sign, F32_LSB,  F32_guard,  F32_sticky, F32_result_fmt {
             ignore_bins negative_sqrt = binsof(FP_arith_ops.op_sqrt) && binsof(F32_sign.neg);
             ignore_bins impossible_sqrt = binsof(FP_arith_ops.op_sqrt) with (!F32_sticky && (F32_guard || F32_LSB));
         }
         B3_F32_convert: cross FP_convert_ops, rounding_mode_all, F32_sign, F32_LSB, F32_guard, F32_sticky, FP_int_convert_fmt, F32_result_fmt {
+            ignore_bins negative_uint = binsof(F32_sign.neg) && binsof(FP_int_convert_fmt.fmt_uint);
+
+            `ifdef COVER_LONG
+                ignore_bins negative_ulong = binsof(F32_sign.neg) && binsof(FP_int_convert_fmt.fmt_ulong);
+            `endif // COVER_LONG
+
             ignore_bins invalid_convert = binsof(FP_int_convert_fmt.fmt_single);
 
             `ifdef COVER_F16
@@ -198,6 +301,12 @@ covergroup B3_cg (virtual coverfloat_interface CFI);
             ignore_bins impossible_sqrt = binsof(FP_arith_ops.op_sqrt) with (!F64_sticky && (F64_guard || F64_LSB));
         }
         B3_F64_convert: cross FP_convert_ops, rounding_mode_all, F64_sign, F64_LSB, F64_guard, F64_sticky, FP_int_convert_fmt, F64_result_fmt {
+            ignore_bins widen_int_to_f64 = binsof(FP_int_convert_fmt.fmt_uint) || binsof(FP_int_convert_fmt.fmt_int);
+
+            `ifdef COVER_LONG
+                ignore_bins negative_ulong = binsof(F64_sign.neg) && binsof(FP_int_convert_fmt.fmt_ulong);
+            `endif // COVER_LONG
+
             ignore_bins invalid_convert = binsof(FP_int_convert_fmt.fmt_double);
 
             `ifdef COVER_F16
@@ -219,8 +328,18 @@ covergroup B3_cg (virtual coverfloat_interface CFI);
             ignore_bins negative_sqrt = binsof(FP_arith_ops.op_sqrt) && binsof(F16_sign.neg);
             ignore_bins impossible_sqrt = binsof(FP_arith_ops.op_sqrt) with (!F16_sticky && (F16_guard || F16_LSB));
         }
-        B3_F16_to_float_convert: cross FP_convert_ops, rounding_mode_all, F16_sign, F16_LSB, F16_guard, F16_sticky, FP_int_convert_fmt, F16_result_fmt {
+        B3_F16_convert: cross FP_convert_ops, rounding_mode_all, F16_sign, F16_LSB, F16_guard, F16_sticky, FP_int_convert_fmt, F16_result_fmt {
+            ignore_bins negative_uint = binsof(F16_sign.neg) && binsof(FP_int_convert_fmt.fmt_uint);
+
+            `ifdef COVER_LONG
+                ignore_bins negative_ulong = binsof(F16_sign.neg) && binsof(FP_int_convert_fmt.fmt_ulong);
+            `endif // COVER_LONG
+
             ignore_bins invalid_convert = binsof(FP_int_convert_fmt.fmt_half);
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f16 = binsof(FP_int_convert_fmt.fmt_bf16);
+            `endif // COVER_F128
         }
     `endif // COVER_F16
 
@@ -229,11 +348,14 @@ covergroup B3_cg (virtual coverfloat_interface CFI);
             ignore_bins negative_sqrt = binsof(FP_arith_ops.op_sqrt) && binsof(BF16_sign.neg);
             ignore_bins impossible_sqrt = binsof(FP_arith_ops.op_sqrt) with (!BF16_sticky && (BF16_guard || BF16_LSB));
         }
-        B3_BF16_to_float_convert: cross FP_convert_ops, rounding_mode_all, BF16_sign, BF16_LSB, BF16_guard, BF16_sticky, FP_int_convert_fmt, BF16_result_fmt {
+        B3_BF16_convert: cross FP_convert_ops, rounding_mode_all, BF16_sign, BF16_LSB, BF16_guard, BF16_sticky, FP_int_convert_fmt, BF16_result_fmt {
+            ignore_bins negative_uint = binsof(BF16_sign.neg) && binsof(FP_int_convert_fmt.fmt_uint);
+
+            `ifdef COVER_LONG
+                ignore_bins negative_ulong = binsof(BF16_sign.neg) && binsof(FP_int_convert_fmt.fmt_ulong);
+            `endif // COVER_LONG
+
             ignore_bins invalid_convert = binsof(FP_int_convert_fmt.fmt_bf16);
-            `ifdef COVER_F16
-                ignore_bins widen_f16_to_bf16 = binsof(FP_int_convert_fmt.fmt_half);
-            `endif // COVER_F128
 
         }
     `endif // COVER_BF16
@@ -243,7 +365,13 @@ covergroup B3_cg (virtual coverfloat_interface CFI);
             ignore_bins negative_sqrt = binsof(FP_arith_ops.op_sqrt) && binsof(F128_sign.neg);
             ignore_bins impossible_sqrt = binsof(FP_arith_ops.op_sqrt) with (!F128_sticky && (F128_guard || F128_LSB));
         }
-        B3_F128_to_float_convert: cross FP_convert_ops, rounding_mode_all, F128_sign, F128_LSB, F128_guard, F128_sticky, FP_int_convert_fmt, F128_result_fmt {
+        B3_F128_convert: cross FP_convert_ops, rounding_mode_all, F128_sign, F128_LSB, F128_guard, F128_sticky, FP_int_convert_fmt, F128_result_fmt {
+            ignore_bins widen_int_to_f128 = binsof(FP_int_convert_fmt.fmt_uint) || binsof(FP_int_convert_fmt.fmt_int);
+
+            `ifdef COVER_LONG
+                ignore_bins widen_long_to_f128 = binsof(FP_int_convert_fmt.fmt_ulong) || binsof(FP_int_convert_fmt.fmt_long);
+            `endif // COVER_LONG
+
             ignore_bins invalid_convert = binsof(FP_int_convert_fmt.fmt_quad);
 
             `ifdef COVER_F16

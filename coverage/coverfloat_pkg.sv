@@ -166,6 +166,8 @@ package coverfloat_pkg;
     parameter int F128_MIN_NORM_EXP    = 1 - F128_EXP_BIAS;
     parameter int F128_MIN_SUBNORM_EXP = (1 - F128_EXP_BIAS) - (F128_P - 1);
 
+    parameter int SIZEOF_INT  = 32;
+    parameter int SIZEOF_LONG = 64;
 
 
     // Helper functions for difficult coverpoints
