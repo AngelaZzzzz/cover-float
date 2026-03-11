@@ -93,10 +93,54 @@ covergroup B3_cg (virtual coverfloat_interface CFI);
         bins round_near_maxmag = {ROUND_NEAR_MAXMAG};
     }
 
-    op_arith_conv: coverpoint CFI.op {
+
+    FP_arith_ops: coverpoint CFI.op {
         type_option.weight = 0;
         `include "bins_templates/arithmetic_op_bins.svh"
-        `include "bins_templates/conversion_op_bins.svh"
+    }
+
+    FP_convert_ops: coverpoint CFI.op {
+        type_option.weight = 0;
+        // checks that a convert is happening (F2X, X2F, or F2F)
+        // operand and result formats infer which type
+
+        bins convert = {OP_CFI, OP_CFF, OP_CIF};
+        // bins op_cfi
+        // bins op_cff
+        // bins op_cif
+    }
+
+    FP_int_convert_fmt: coverpoint CFI.operandFmt {
+        type_option.weight = 0;
+        // all formats to convert to
+
+        `ifdef COVER_F16
+            bins fmt_half   = {FMT_HALF};
+        `endif // COVER_F16
+
+        `ifdef COVER_F32
+            bins fmt_single = {FMT_SINGLE};
+        `endif // COVER_F32
+
+        `ifdef COVER_F64
+            bins fmt_double = {FMT_DOUBLE};
+        `endif // COVER_F64
+
+        `ifdef COVER_F128
+            bins fmt_quad   = {FMT_QUAD};
+        `endif // COVER_F128
+
+        `ifdef COVER_BF16
+            bins fmt_bf16   = {FMT_BF16};
+        `endif // COVER_BF16
+
+        bins fmt_int    = {FMT_INT};
+        bins fmt_uint   = {FMT_UINT};
+
+        `ifdef COVER_LONG
+            bins fmt_long  = {FMT_LONG};
+            bins fmt_ulong = {FMT_ULONG};
+        `endif // COVER_LONG
     }
 
     F16_result_fmt: coverpoint CFI.resultFmt == FMT_HALF {
@@ -131,23 +175,93 @@ covergroup B3_cg (virtual coverfloat_interface CFI);
 
     // main coverpoints
     `ifdef COVER_F32
-        B3_F32:  cross op_arith_conv, rounding_mode_all, F32_sign, F32_LSB,  F32_guard,  F32_sticky, F32_result_fmt;
+        B3_F32_arith:  cross FP_arith_ops, rounding_mode_all, F32_sign, F32_LSB,  F32_guard,  F32_sticky, F32_result_fmt {
+            ignore_bins negative_sqrt = binsof(FP_arith_ops.op_sqrt) && binsof(F32_sign.neg);
+            ignore_bins impossible_sqrt = binsof(FP_arith_ops.op_sqrt) with (!F32_sticky && (F32_guard || F32_LSB));
+        }
+        B3_F32_convert: cross FP_convert_ops, rounding_mode_all, F32_sign, F32_LSB, F32_guard, F32_sticky, FP_int_convert_fmt, F32_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_int_convert_fmt.fmt_single);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f32 = binsof(FP_int_convert_fmt.fmt_half);
+            `endif // COVER_F64
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f32 = binsof(FP_int_convert_fmt.fmt_bf16);
+            `endif // COVER_F64
+        }
     `endif // COVER_F32
 
     `ifdef COVER_F64
-        B3_F64:  cross op_arith_conv, rounding_mode_all, F64_sign, F64_LSB,  F64_guard,  F64_sticky, F64_result_fmt;
+        B3_F64_arith:  cross FP_arith_ops, rounding_mode_all, F64_sign, F64_LSB,  F64_guard,  F64_sticky, F64_result_fmt {
+            ignore_bins negative_sqrt = binsof(FP_arith_ops.op_sqrt) && binsof(F64_sign.neg);
+            ignore_bins impossible_sqrt = binsof(FP_arith_ops.op_sqrt) with (!F64_sticky && (F64_guard || F64_LSB));
+        }
+        B3_F64_convert: cross FP_convert_ops, rounding_mode_all, F64_sign, F64_LSB, F64_guard, F64_sticky, FP_int_convert_fmt, F64_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_int_convert_fmt.fmt_double);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f64 = binsof(FP_int_convert_fmt.fmt_half);
+            `endif // COVER_F64
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f64 = binsof(FP_int_convert_fmt.fmt_bf16);
+            `endif // COVER_F64
+
+            `ifdef COVER_F32
+                ignore_bins widen_f32_to_f64 = binsof(FP_int_convert_fmt.fmt_single);
+            `endif // COVER_F64
+        }
     `endif // COVER_F64
 
     `ifdef COVER_F16
-        B3_F16:  cross op_arith_conv, rounding_mode_all, F16_sign, F16_LSB,  F16_guard,  F16_sticky, F16_result_fmt;
+        B3_F16_arith:  cross FP_arith_ops, rounding_mode_all, F16_sign, F16_LSB,  F16_guard,  F16_sticky, F16_result_fmt {
+            ignore_bins negative_sqrt = binsof(FP_arith_ops.op_sqrt) && binsof(F16_sign.neg);
+            ignore_bins impossible_sqrt = binsof(FP_arith_ops.op_sqrt) with (!F16_sticky && (F16_guard || F16_LSB));
+        }
+        B3_F16_to_float_convert: cross FP_convert_ops, rounding_mode_all, F16_sign, F16_LSB, F16_guard, F16_sticky, FP_int_convert_fmt, F16_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_int_convert_fmt.fmt_half);
+        }
     `endif // COVER_F16
 
     `ifdef COVER_BF16
-        B3_BF16: cross op_arith_conv, rounding_mode_all, BF16_sign, BF16_LSB, BF16_guard, BF16_sticky, BF16_result_fmt;
+        B3_BF16_arith: cross FP_arith_ops, rounding_mode_all, BF16_sign, BF16_LSB, BF16_guard, BF16_sticky, BF16_result_fmt {
+            ignore_bins negative_sqrt = binsof(FP_arith_ops.op_sqrt) && binsof(BF16_sign.neg);
+            ignore_bins impossible_sqrt = binsof(FP_arith_ops.op_sqrt) with (!BF16_sticky && (BF16_guard || BF16_LSB));
+        }
+        B3_BF16_to_float_convert: cross FP_convert_ops, rounding_mode_all, BF16_sign, BF16_LSB, BF16_guard, BF16_sticky, FP_int_convert_fmt, BF16_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_int_convert_fmt.fmt_bf16);
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_bf16 = binsof(FP_int_convert_fmt.fmt_half);
+            `endif // COVER_F128
+
+        }
     `endif // COVER_BF16
 
     `ifdef COVER_F128
-        B3_F128: cross op_arith_conv, rounding_mode_all, F128_sign, F128_LSB, F128_guard, F128_sticky, F128_result_fmt;
+        B3_F128_arith: cross FP_arith_ops, rounding_mode_all, F128_sign, F128_LSB, F128_guard, F128_sticky, F128_result_fmt {
+            ignore_bins negative_sqrt = binsof(FP_arith_ops.op_sqrt) && binsof(F128_sign.neg);
+            ignore_bins impossible_sqrt = binsof(FP_arith_ops.op_sqrt) with (!F128_sticky && (F128_guard || F128_LSB));
+        }
+        B3_F128_to_float_convert: cross FP_convert_ops, rounding_mode_all, F128_sign, F128_LSB, F128_guard, F128_sticky, FP_int_convert_fmt, F128_result_fmt {
+            ignore_bins invalid_convert = binsof(FP_int_convert_fmt.fmt_quad);
+
+            `ifdef COVER_F16
+                ignore_bins widen_f16_to_f128 = binsof(FP_int_convert_fmt.fmt_half);
+            `endif // COVER_F64
+
+            `ifdef COVER_BF16
+                ignore_bins widen_bf16_to_f128 = binsof(FP_int_convert_fmt.fmt_bf16);
+            `endif // COVER_F64
+
+            `ifdef COVER_F32
+                ignore_bins widen_f32_to_f128 = binsof(FP_int_convert_fmt.fmt_single);
+            `endif // COVER_F64
+
+            `ifdef COVER_F64
+                ignore_bins widen_f64_to_f128 = binsof(FP_int_convert_fmt.fmt_single);
+            `endif // COVER_F64
+        }
     `endif // COVER_F128
 
 
