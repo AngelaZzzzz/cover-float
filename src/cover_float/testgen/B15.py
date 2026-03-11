@@ -1,7 +1,6 @@
 # B15
 
 import itertools
-import math
 import random
 from dataclasses import dataclass
 from pathlib import Path
@@ -24,13 +23,6 @@ B15_OPS = [
     constants.OP_FNMADD,
     constants.OP_FNMSUB,
 ]
-
-# A major part of this coverpoint is driving the B15 addend generation, we want them to roughly fit
-# the structure that we have already established (to the extent possible)
-
-# First, we will consider single precision cases
-
-# This works up to a difference around 23 (so up to singles)
 
 
 @dataclass
@@ -387,19 +379,38 @@ class B15SignificandGenerator:
     def sparse_ones(self, positions: Optional[list[int]] = None) -> None:
         random.seed(reproducible_hash(f"B15 Sparse Ones {self.nf}"))
 
-        if self.nf == 112:
-            return
-
         if positions is None:
-            positions = [0, self.nf - 1, math.ceil(self.nf / 2), math.ceil(self.nf / 2 - 1)]
-            position = 1
-            while position < self.nf and len(positions) < 10:
-                positions.append(position)
-                position *= 2
-            while len(positions) < min(self.nf, 10):
-                val = random.randint(0, self.nf - 1)
-                if val not in positions:
-                    positions.append(val)
+            # Specific Values Known to work well, and are close to the ideal
+            if self.nf == constants.MANTISSA_BITS["00"]:
+                positions = [3, 6, 7, 9, 16, 18]
+            elif self.nf == constants.MANTISSA_BITS["01"]:
+                positions = [1, 5, 9, 15, 22, 23, 32, 44]
+            elif self.nf == constants.MANTISSA_BITS["02"]:
+                positions = [0, 3, 5, 7, 15, 31, 51, 52, 64, 102]
+            elif self.nf == constants.MANTISSA_BITS["03"]:
+                # For reference, these are the positions that would factor in under 10 sections
+                # [0, 3, 5, 9, 11, 12, 14, 15, 16, 17, 19, 21, 22, 23, 24, 25, 27, 29, 30, 31, 32, 35, 36, 37, 39, 40,
+                #  41, 43, 45, 47, 48, 50, 51, 52, 54, 55, 56, 57, 59, 60, 62, 63, 65, 66, 68, 69, 70, 71, 72, 73, 74,
+                #  75, 76, 78, 79, 80, 81, 82, 83, 84, 85, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 99, 100, 101,
+                #  102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121,
+                #  122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141,
+                #  142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161,
+                #  162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181,
+                #  182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201,
+                #  202, 203, 204, 205, 206, 207, 208, 210, 211, 212, 213, 214, 215, 216, 218, 219, 220, 222]
+                positions = [0, 3, 16, 32, 63, 112, 113, 128, 168, 200, 222]
+            elif self.nf == constants.MANTISSA_BITS["04"]:
+                positions = [1, 3, 5, 6, 8, 9, 10, 12]  # Turns out to be all possible values
+            else:
+                positions = [0, 2 * self.nf, self.nf, self.nf - 1]
+                position = 1
+                while position < 2 * self.nf and len(positions) < 10:
+                    positions.append(position)
+                    position *= 2
+                while len(positions) < min(2 * self.nf, 10):
+                    val = random.randint(0, 2 * self.nf - 1)
+                    if val not in positions:
+                        positions.append(val)
 
         for position in positions:
             target = 1 << (2 * self.nf + 1)
@@ -414,28 +425,18 @@ class B15SignificandGenerator:
             if res == target:
                 self.sigs.append(B15Significand(sig1, sig2, res))
 
-    def sparse_zeros(self, positions: Optional[list[int]] = None) -> None:
-        random.seed(reproducible_hash(f"B15 Sparse Zeros {self.nf}"))
-
+    def sparse_zeros(self) -> None:
+        # These numbers are so rare and so not worth it to attempt to generate for quads
         if self.nf == 112:
             return
 
-        if positions is None:
-            positions = [0, 2 * self.nf, self.nf, self.nf - 1]
-            position = 1
-            while position < self.nf and len(positions) < 10:
-                positions.append(position)
-                position *= 2
-            while len(positions) < min(self.nf, 10):
-                val = random.randint(0, 2 * self.nf - 1)
-                if val not in positions:
-                    positions.append(val)
-
-        for position in positions:
+        hits = 0
+        for attempt in range(10000):
+            print(f"hits: {hits}/10, attempts: {attempt}", end="\r")
             target = (1 << (2 * self.nf + 2)) - 1
-            target ^= 1 << position
-            p2 = random.randint(1, 2 * self.nf)
-            target ^= 1 << p2
+            for _ in range(min(8, self.nf // 2)):
+                p2 = random.randint(1, 2 * self.nf)
+                target &= ~(1 << p2)
 
             factors: dict[int, int] = factorint(target)
             f1, f2 = self.factors_to_bit_width(factors, target, self.nf + 1)
@@ -445,6 +446,10 @@ class B15SignificandGenerator:
             res = f1 * f2
             if res == target:
                 self.sigs.append(B15Significand(sig1, sig2, res))
+                hits += 1
+                if hits == 10:
+                    break
+        print("\x1b[2K", end="\r")
 
     @staticmethod
     def evenly_spaced_numbers(start: int, end: int, count: int) -> list[int]:
@@ -612,14 +617,10 @@ class B15SignificandGenerator:
         self.leading_zeros()
         print("\tLeading Ones")
         self.leading_ones()
-        # Choose some very specific values I think as configuration, so many primes and so much hard work that can
-        # be avoided just by doing all of the work ahead of time and picking interesting cases
         print("\tSparse Ones")
-        # gen.sparse_ones([*range(0, 104)])
         self.sparse_ones()
         print("\tSparse Zeros")
         self.sparse_zeros()
-        # gen.sparse_zeros([*range(0, 104)])
         print("\tLong Runs of Ones")
         self.long_run_ones()
         print("\tLong Runs of Zeros")
