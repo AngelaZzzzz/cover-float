@@ -1746,6 +1746,12 @@ int reference_model(
     *flags = softFloat_getFlags();
     softfloat_getIntermResults(intermResult);
 
+    if (*op == OP_CFI && *operandFmt == FMT_HALF && (*resultFmt == FMT_LONG || *resultFmt == FMT_ULONG)) {
+        struct uint128 res = softfloat_shiftRightJam128(intermResult->sig64, intermResult->sig0, 32);
+        intermResult->sig64 = res.v64;
+        intermResult->sig0 = res.v0;
+    }
+
     if (intermResult->exp == 0 && intermResult->sig64 == 0) {
         // Then we need to extract an intermediate result from the result
         switch (*resultFmt) {

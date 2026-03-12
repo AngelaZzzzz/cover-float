@@ -49,7 +49,6 @@ def extract_rounding_info(cover_vector: str) -> dict[str, int]:
     fields = cover_vector.split("_")
     sgn = fields[-3]
     result_fmt = fields[-5].upper()
-    operand_fmt = fields[5].upper()
 
     # Place in a leading one so that we get all the significant figures possible
     interm_significand = int("1" + fields[-1], 16)
@@ -59,9 +58,6 @@ def extract_rounding_info(cover_vector: str) -> dict[str, int]:
         mantissa_length = common.MANTISSA_BITS[result_fmt]
     elif result_fmt in common.INT_FMTS:
         mantissa_length = common.INT_MAX_EXPS[result_fmt]
-
-        if operand_fmt == common.FMT_HALF and result_fmt in [common.FMT_LONG, common.FMT_ULONG]:
-            mantissa_length -= 32  # Softfloat shenanigans are ruining my life again
     else:
         raise ValueError(f"Unknown Result Format: {result_fmt}")
 
@@ -679,7 +675,7 @@ def write_cvt_tests(test_f: TextIO, cover_f: TextIO, fmt: str) -> None:
                 if expected_result != info:
                     print(
                         f"CFI Generation Unexpected Value, fmt={fmt}, target={target_fmt}, mode={mode},"
-                        "cvt_from={cvt_from:x}"
+                        f"cvt_from={cvt_from:x}"
                     )
                 elif info in goals:
                     goals.remove(info)
