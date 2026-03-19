@@ -33,11 +33,11 @@ covergroup B3_cg (virtual coverfloat_interface CFI);
         bins neg = {1};
     }
 
-    // interm_sign: coverpoint CFI.intermS {
-    //     type_option.weight = 0;
-    //     bins pos = {0};
-    //     bins neg = {1};
-    // }
+    interm_sign: coverpoint CFI.intermS {
+        type_option.weight = 0;
+        bins pos = {0};
+        bins neg = {1};
+    }
 
 
     F16_LSB:   coverpoint CFI.intermM[INTERM_M_BITS - F16_M_BITS     ] {
@@ -122,7 +122,7 @@ covergroup B3_cg (virtual coverfloat_interface CFI);
     long_sticky: coverpoint |CFI.intermM[INTERM_M_BITS - SIZEOF_LONG - 1 : 0] {
         type_option.weight = 0;
     }
-    ulong_sticky: coverpoint |CFI.intermM[INTERM_M_BITS - SIZEOF_LONG - 2] {
+    ulong_sticky: coverpoint |CFI.intermM[INTERM_M_BITS - SIZEOF_LONG - 2 : 0] {
         type_option.weight = 0;
     }
 
@@ -263,12 +263,12 @@ covergroup B3_cg (virtual coverfloat_interface CFI);
 
     // main coverpoints
 
-    B3_int_convert:  cross FP_convert_ops, rounding_mode_all,  int_LSB,  int_guard,  int_sticky, FP_convert_fmt,  int_result_fmt;
-    B3_uint_convert: cross FP_convert_ops, rounding_mode_all, uint_LSB, uint_guard, uint_sticky, FP_convert_fmt, uint_result_fmt;
+    B3_int_convert:  cross FP_convert_ops, rounding_mode_all, interm_sign, int_LSB,  int_guard,  int_sticky, FP_convert_fmt,  int_result_fmt;
+    B3_uint_convert: cross FP_convert_ops, rounding_mode_all,             uint_LSB, uint_guard, uint_sticky, FP_convert_fmt, uint_result_fmt;
 
     `ifdef COVER_LONG
-        B3_long_convert:  cross FP_convert_ops, rounding_mode_all,  long_LSB,  int_guard,  long_sticky, FP_convert_fmt,  long_result_fmt;
-        B3_ulong_convert: cross FP_convert_ops, rounding_mode_all, ulong_LSB, uint_guard, ulong_sticky, FP_convert_fmt, ulong_result_fmt;
+        B3_long_convert:  cross FP_convert_ops, rounding_mode_all, interm_sign, long_LSB,  long_guard,  long_sticky, FP_convert_fmt,  long_result_fmt;
+        B3_ulong_convert: cross FP_convert_ops, rounding_mode_all,             ulong_LSB, ulong_guard, ulong_sticky, FP_convert_fmt, ulong_result_fmt;
     `endif // COVER_LONG
 
     `ifdef COVER_F32

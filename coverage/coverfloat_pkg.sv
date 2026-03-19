@@ -172,6 +172,47 @@ package coverfloat_pkg;
 
     // Helper functions for difficult coverpoints
 
+    // determine hamming distance between two signals
+    function automatic int sig_hamming_distance(
+        input logic [255:0] a,
+        input logic [255:0] b,
+        input int width
+    );
+        int i;
+        int distance;
+
+        begin
+            distance = 0;
+
+            for (i = 0; i < width; i++) begin
+                if (a[i] != b[i])
+                    distance++;
+            end
+
+            return distance;
+        end
+    endfunction
+
+    // find index of first bit that differs between two signals
+    function automatic int sig_diff_index(
+        input logic [255:0] a,
+        input logic [255:0] b,
+        input int width
+    );
+        int i;
+
+        begin
+            for (i = 0; i < width; i++) begin
+                if (a[i] != b[i]) begin
+                    return i;
+                end
+            end
+
+            return -1;
+        end
+    endfunction
+
+
     // Count leading zeros (from MSB downward)
     function automatic int count_leading_zeros (
         input logic [255:0] val,
