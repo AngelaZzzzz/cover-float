@@ -224,7 +224,7 @@ def test_sqrt(fmt: str, desired_result: str, test_f: TextIO, cover_f: TextIO) ->
     )
 
 
-def test_fmadd(fmt: str, desired_result: str, maxnorm: bool, test_f: TextIO, cover_f: TextIO) -> None:
+def test_fmadd(fmt: str, desired_result: str, base_e: int, maxnorm: bool, test_f: TextIO, cover_f: TextIO) -> None:
     # We have to limit the freedom here. a and b shouldn't be random because a * b can overflow or underflow,
     # or be other values that makes c +/- infinity.
     max_exp = BIASED_EXP[fmt][1]  # 254
@@ -232,15 +232,25 @@ def test_fmadd(fmt: str, desired_result: str, maxnorm: bool, test_f: TextIO, cov
     m_bits = MANTISSA_BITS[fmt]
 
     # we still check for maxnorm, but sign doesn't matter because we can just make the other operand negative
+    # Let's randomly generate a_exp, and constraint b_exp so that c_exp is the same as base_e to make all operand
+    # visible in the result (so that neither the product nor operand c is just the result), aka. c is neither 0
+    # nor just the desired result.
     if maxnorm:
         min_safe_exp = bias
         max_safe_exp = max_exp
+        a_exp = random.randint(min_safe_exp, max_safe_exp)
+        b_exp = random.randint(max(0, max_exp - a_exp - m_bits), max_exp - a_exp)  # base = 127, a_exp = 53, b_exp
+        # needs to be between 127-53-23 to 127-53
     else:
-        min_safe_exp = 1
-        max_safe_exp = bias - m_bits  # For the reason above ^
+        min_safe_exp = 1  # base = -126 = 1, a_exp = -125 = 2, b_exp needs to be -1 which is 126
+        max_safe_exp = bias  # base = -126 (1), a_exp = -53 (74), b_exp needs to be between -126 - (-53) = -73 (54)
+        # and -126 - (-53) + 23 = -50
+        a_exp = random.randint(min_safe_exp, max_safe_exp)
+        b_exp = base_e - a_exp + bias
+        # b_exp = random.randint(base_e - a_exp + bias, base_e - a_exp + m_bits + bias)
 
-    a_exp = random.randint(min_safe_exp, max_safe_exp)
-    b_exp = random.randint(min_safe_exp, max_safe_exp)
+    # a_exp = random.randint(min_safe_exp, max_safe_exp)
+    # b_exp = random.randint(min_safe_exp, max_safe_exp)
     a = decimalComponentsToHex(fmt, random.randint(0, 1), a_exp, random.getrandbits(MANTISSA_BITS[fmt]))
     b = decimalComponentsToHex(fmt, random.randint(0, 1), b_exp, random.getrandbits(MANTISSA_BITS[fmt]))
     c = get_result_from_ref(OP_FNMADD, a, b, desired_result, fmt)
@@ -331,15 +341,14 @@ def main() -> None:
                 "MaxNorm": ((1 << m_bits) - 1, (1 << EXPONENT_BITS[fmt]) - 2),
             }
 
-            for _, (base_m, base_e) in bases.items():
+            for base, (base_m, base_e) in bases.items():
                 for i in range(m_bits):
                     desired_m = base_m ^ (1 << i)
                     for sign in [0, 1]:
                         desired_result = decimalComponentsToHex(fmt, sign, base_e, desired_m)
                         # if fmt == "01" and base_e == (1 << (EXPONENT_BITS[fmt] - 1)) - 1:
                         #     print(desired_result)
-                        maxnorm_exp = (1 << EXPONENT_BITS[fmt]) - 2
-                        maxnorm = base_e == maxnorm_exp
+                        maxnorm = base == "MaxNorm"
                         # test_add(fmt, desired_result, base_e, maxnorm, sign, test_f, cover_f)
                         # test_sub(fmt, desired_result, base_e, maxnorm, sign, test_f, cover_f)
                         # test_mul(fmt, desired_result, maxnorm, test_f, cover_f)
@@ -348,10 +357,10 @@ def main() -> None:
                         # if sign == 0 and base == "One":
                         #     test_sqrt(fmt, desired_result, test_f, cover_f)
 
-                        test_fmadd(fmt, desired_result, maxnorm, test_f, cover_f)
-                        # test_fmsub(fmt, desired_result, test_f, cover_f)
-                        # test_fnmadd(fmt, desired_result, test_f, cover_f)
-                        # test_fnmsub(fmt, desired_result, test_f, cover_f)
+                        test_fmadd(fmt, desired_result, base_e, maxnorm, test_f, cover_f)
+                        # test_fmsub(fmt, desired_result, base_e, maxnorm, test_f, cover_f)
+                        # test_fnmadd(fmt, desired_result, base_e, maxnorm, test_f, cover_f)
+                        # test_fnmsub(fmt, desired_result, base_e, maxnorm, test_f, cover_f)
 
 
 if __name__ == "__main__":
