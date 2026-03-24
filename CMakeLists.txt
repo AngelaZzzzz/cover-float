@@ -15,7 +15,7 @@ include_directories(src/submodules/spike/)
 
 file(GLOB SOFTFLOAT_SRC submodules/spike/softfloat/*.c)
 
-add_library(coverfloat STATIC src/c/coverfloat.c)
+add_library(coverfloat STATIC src/c/coverfloat.cpp)
 target_link_libraries(coverfloat PRIVATE softfloat)
 set_target_properties(coverfloat PROPERTIES
     POSITION_INDEPENDENT_CODE ON

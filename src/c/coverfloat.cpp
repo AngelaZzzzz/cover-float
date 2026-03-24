@@ -1,9 +1,9 @@
-#include "coverfloat.h"
-#include <inttypes.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "coverfloat.hpp"
+#include <cinttypes>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 void softFloat_clearFlags(uint_fast8_t clearMask) {
     softfloat_exceptionFlags &= ~clearMask;
@@ -114,7 +114,7 @@ int reference_model(
     softFloat_clearFlags(0xFF);
 
     // clear intermediate result to avoid reporting intermediate results for results that were not rounded
-    softfloat_clearIntermResults(result);
+    softfloat_clearIntermResults();
 
     // set rounding mode
     softFloat_setRoundingMode(*rm);
@@ -380,8 +380,8 @@ int reference_model(
             UINT128_TO_FLOAT16(af, a);
             UINT128_TO_FLOAT16(bf, b);
             // resultf = bf16_rem(af, bf);
-            float32_t f32A = {(uint_fast32_t)af.v << 16};
-            float32_t f32B = {(uint_fast32_t)bf.v << 16};
+            float32_t f32A = {(uint32_t)af.v << 16};
+            float32_t f32B = {(uint32_t)bf.v << 16};
             resultf = f32_to_bf16(f32_div(f32A, f32B));
 
             FLOAT16_TO_UINT128(result, resultf);

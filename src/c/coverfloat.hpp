@@ -8,10 +8,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define TEST_VECTOR_WIDTH_BITS 576
 #define COVER_VECTOR_WIDTH_BITS 804
 
@@ -132,9 +128,5 @@ int coverfloat_runtestvector(
 // TODO move to own file
 float128_t f128_min(float128_t a, float128_t b);
 float128_t f128_max(float128_t a, float128_t b);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
