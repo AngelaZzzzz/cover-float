@@ -69,6 +69,8 @@ def calibrate(hex_val: str, steps: int) -> str:
 
 
 # TODO: IDEA: restrain the difference between a_exp and b_exp to increase accuracy!!!! for ALL operations!!!!
+# TODO: IDEA: to calibrate, check whether the numerical part of the result and desired result are equal.
+# This is because the flag might set the difference.
 
 
 # TODO: looks like the last few minnorm results are a bit inaccurate.
@@ -240,12 +242,20 @@ def test_fmadd(fmt: str, desired_result: str, base_e: int, maxnorm: bool, test_f
         a_exp = random.randint(min_safe_exp, max_safe_exp)
         b_exp = random.randint(max(0, max_exp - a_exp - m_bits), max_exp - a_exp)  # base = 127, a_exp = 53, b_exp
         # needs to be between 127-53-23 to 127-53
+        # if sign == 0:
+        #     a_sign = random.randint(0, 1)
+        #     b_sign = a_sign
+        # else:
+        #     a_sign = random.randint(0, 1)
+        #     b_sign = a_sign * (-1)
     else:
         min_safe_exp = 1  # base = -126 = 1, a_exp = -125 = 2, b_exp needs to be -1 which is 126
         max_safe_exp = bias  # base = -126 (1), a_exp = -53 (74), b_exp needs to be between -126 - (-53) = -73 (54)
         # and -126 - (-53) + 23 = -50
         a_exp = random.randint(min_safe_exp, max_safe_exp)
         b_exp = base_e - a_exp + bias
+        # a_sign = random.randint(0, 1)
+        # b_sign = random.randint(0, 1)
         # b_exp = random.randint(base_e - a_exp + bias, base_e - a_exp + m_bits + bias)
 
     # a_exp = random.randint(min_safe_exp, max_safe_exp)
@@ -259,8 +269,37 @@ def test_fmadd(fmt: str, desired_result: str, base_e: int, maxnorm: bool, test_f
     #         c = calibrate(c, 1)
     #     elif get_result_from_ref(OP_FMADD, a, b, calibrate(c, -1), fmt) == desired_result:
     #         c = calibrate(c, -1)
-
     run_and_store_test_vector(f"{OP_FMADD}_{ROUND_NEAR_EVEN}_{a}_{b}_{c}_{fmt}_{32 * '0'}_{fmt}_00", test_f, cover_f)
+
+
+# This version considers sign of the product in case of maxnorm, similar to add test
+# def test_fmadd(fmt: str, desired_result: str, base_e: int, maxnorm: bool, sign: int, test_f: TextIO, cover_f: TextIO)
+# -> None:
+#     max_exp = BIASED_EXP[fmt][1]  # 254
+#     bias = BIAS[fmt]  # 127
+#     m_bits = MANTISSA_BITS[fmt]
+#     c_exp = base_e
+
+#     if maxnorm:
+#         if sign == 0:
+#             c = decimalComponentsToHex(fmt, 0, c_exp, random.getrandbits(m_bits))
+#             product = get_result_from_ref(OP_SUB, desired_result, c, "0" * 32, fmt)
+#         else:
+#             c = decimalComponentsToHex(fmt, 1, c_exp, random.getrandbits(m_bits))
+#             product = get_result_from_ref(OP_SUB, desired_result, c, "0" * 32, fmt)
+#         min_safe_exp = bias
+#         max_safe_exp = max_exp
+#     else:
+#         c = decimalComponentsToHex(fmt, random.randint(0, 1), c_exp, random.getrandbits(m_bits))
+#         product = get_result_from_ref(OP_SUB, desired_result, c, "0" * 32, fmt)
+#         min_safe_exp = 1
+#         max_safe_exp = bias
+
+#     a_exp = random.randint(min_safe_exp, max_safe_exp)
+#     a = decimalComponentsToHex(fmt, random.randint(0, 1), a_exp, random.getrandbits(m_bits))
+#     b = get_result_from_ref(OP_DIV, product, a, "0" * 32, fmt)
+
+#     run_and_store_test_vector(f"{OP_FMADD}_{ROUND_NEAR_EVEN}_{a}_{b}_{c}_{fmt}_{32 * '0'}_{fmt}_00", test_f, cover_f)
 
 
 # TODO: minsubnorm, maxsubnorm, minnorm all have inaccuracies
@@ -268,7 +307,7 @@ def test_fmsub(fmt: str, desired_result: str, base_e: int, maxnorm: bool, test_f
     max_exp = BIASED_EXP[fmt][1]  # 254
     bias = BIAS[fmt]  # 127
     m_bits = MANTISSA_BITS[fmt]
-
+    # a*b - c = desired_result
     if maxnorm:
         min_safe_exp = bias
         max_safe_exp = max_exp
@@ -293,26 +332,33 @@ def test_fmsub(fmt: str, desired_result: str, base_e: int, maxnorm: bool, test_f
     run_and_store_test_vector(f"{OP_FMSUB}_{ROUND_NEAR_EVEN}_{a}_{b}_{c}_{fmt}_{32 * '0'}_{fmt}_00", test_f, cover_f)
 
 
-# def test_fnmadd(fmt: str, desired_result: str, base_e: int, maxnorm: bool, test_f: TextIO, cover_f: TextIO) -> None:
-#     max_exp = BIASED_EXP[fmt][1]  # 254
-#     bias = BIAS[fmt]  # 127
-#     m_bits = MANTISSA_BITS[fmt]
-#     a = decimalComponentsToHex(
-#         fmt, random.randint(0, 1), random.randint(0, max_exp), random.getrandbits(MANTISSA_BITS[fmt])
-#     )
-#     b = decimalComponentsToHex(
-#         fmt, random.randint(0, 1), random.randint(0, max_exp), random.getrandbits(MANTISSA_BITS[fmt])
-#     )
+def test_fnmadd(fmt: str, desired_result: str, base_e: int, maxnorm: bool, test_f: TextIO, cover_f: TextIO) -> None:
+    max_exp = BIASED_EXP[fmt][1]  # 254
+    bias = BIAS[fmt]  # 127
+    m_bits = MANTISSA_BITS[fmt]  # 23
+    # -a*b - c = desired_result
+    if maxnorm:
+        min_safe_exp = bias
+        max_safe_exp = max_exp
+        a_exp = random.randint(min_safe_exp, max_safe_exp)
+        b_exp = random.randint(max(0, max_exp - a_exp - m_bits), max_exp - a_exp)
+    else:
+        min_safe_exp = 1
+        max_safe_exp = bias
+        a_exp = random.randint(min_safe_exp, max_safe_exp)
+        b_exp = base_e - a_exp + bias
 
-#     c = get_result_from_ref(OP_FMADD, a, b, desired_result, fmt)
+    a = decimalComponentsToHex(fmt, random.randint(0, 1), a_exp, random.getrandbits(MANTISSA_BITS[fmt]))
+    b = decimalComponentsToHex(fmt, random.randint(0, 1), b_exp, random.getrandbits(MANTISSA_BITS[fmt]))
+    c = get_result_from_ref(OP_FNMADD, a, b, desired_result, fmt)
 
-#     # if get_result_from_ref(OP_FNMADD, a, b, c, fmt) != desired_result:
-#     #     if get_result_from_ref(OP_FNMADD, a, b, calibrate(c, 1), fmt) == desired_result:
-#     #         c = calibrate(c, 1)
-#     #     elif get_result_from_ref(OP_FNMADD, a, b, calibrate(c, -1), fmt) == desired_result:
-#     #         c = calibrate(c, -1)
+    # if get_result_from_ref(OP_FNMADD, a, b, c, fmt) != desired_result:
+    #     if get_result_from_ref(OP_FNMADD, a, b, calibrate(c, 1), fmt) == desired_result:
+    #         c = calibrate(c, 1)
+    #     elif get_result_from_ref(OP_FNMADD, a, b, calibrate(c, -1), fmt) == desired_result:
+    #         c = calibrate(c, -1)
 
-#     run_and_store_test_vector(f"{OP_FNMADD}_{ROUND_NEAR_EVEN}_{a}_{b}_{c}_{fmt}_{32 * '0'}_{fmt}_00", test_f, cover_f)
+    run_and_store_test_vector(f"{OP_FNMADD}_{ROUND_NEAR_EVEN}_{a}_{b}_{c}_{fmt}_{32 * '0'}_{fmt}_00", test_f, cover_f)
 
 
 # def test_fnmsub(fmt: str, desired_result: str, base_e: int, maxnorm: bool, test_f: TextIO, cover_f: TextIO) -> None:
@@ -371,8 +417,8 @@ def main() -> None:
                         #     test_sqrt(fmt, desired_result, test_f, cover_f)
 
                         # test_fmadd(fmt, desired_result, base_e, maxnorm, test_f, cover_f)
-                        test_fmsub(fmt, desired_result, base_e, maxnorm, test_f, cover_f)
-                        # test_fnmadd(fmt, desired_result, base_e, maxnorm, test_f, cover_f)
+                        # test_fmsub(fmt, desired_result, base_e, maxnorm, test_f, cover_f)
+                        test_fnmadd(fmt, desired_result, base_e, maxnorm, test_f, cover_f)
                         # test_fnmsub(fmt, desired_result, base_e, maxnorm, test_f, cover_f)
 
 
