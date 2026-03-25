@@ -1,11 +1,13 @@
 """
 Angela Zheng (angela20061015@gmail.com)
 
-March 24, 2026
+Created:        March 24, 2026
+Last Edited:    March 24, 2026
 """
 
 import random
 from pathlib import Path
+from random import seed
 from typing import TextIO
 
 from cover_float.common.constants import (
@@ -25,6 +27,7 @@ from cover_float.common.constants import (
     OP_SUB,
     ROUND_NEAR_EVEN,
 )
+from cover_float.common.util import reproducible_hash
 from cover_float.reference import run_and_store_test_vector, run_test_vector
 
 
@@ -311,17 +314,35 @@ def main() -> None:
                     for sign in [0, 1]:
                         desired_result = decimalComponentsToHex(fmt, sign, base_e, desired_m)
                         maxnorm = base == "MaxNorm"
+                        hashval = reproducible_hash(OP_ADD + fmt + "b2")
+                        seed(hashval)
                         test_add(fmt, desired_result, base_e, maxnorm, sign, test_f, cover_f)
+                        hashval = reproducible_hash(OP_SUB + fmt + "b2")
+                        seed(hashval)
                         test_sub(fmt, desired_result, base_e, maxnorm, sign, test_f, cover_f)
+                        hashval = reproducible_hash(OP_MUL + fmt + "b2")
+                        seed(hashval)
                         test_mul(fmt, desired_result, maxnorm, test_f, cover_f)
+                        hashval = reproducible_hash(OP_DIV + fmt + "b2")
+                        seed(hashval)
                         test_div(fmt, desired_result, maxnorm, test_f, cover_f)
 
                         if sign == 0 and base == "One":
+                            hashval = reproducible_hash(OP_SQRT + fmt + "b2")
+                            seed(hashval)
                             test_sqrt(fmt, desired_result, test_f, cover_f)
 
+                        hashval = reproducible_hash(OP_FMADD + fmt + "b2")
+                        seed(hashval)
                         test_fmadd(fmt, desired_result, base_e, maxnorm, test_f, cover_f)
+                        hashval = reproducible_hash(OP_FMSUB + fmt + "b2")
+                        seed(hashval)
                         test_fmsub(fmt, desired_result, base_e, maxnorm, test_f, cover_f)
+                        hashval = reproducible_hash(OP_FNMADD + fmt + "b2")
+                        seed(hashval)
                         test_fnmadd(fmt, desired_result, base_e, maxnorm, test_f, cover_f)
+                        hashval = reproducible_hash(OP_FNMSUB + fmt + "b2")
+                        seed(hashval)
                         test_fnmsub(fmt, desired_result, base_e, maxnorm, test_f, cover_f)
 
 
