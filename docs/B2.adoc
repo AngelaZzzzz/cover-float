@@ -9,147 +9,45 @@ Aharoni et al.
 
 === Description
 
-=== Design choices
+SUMMARY
+This script generates test vectors for the B2 model: Near FP Base Values - Hamming Distance.
+It takes specific boundary values (Zero, One, MinSubNorm, etc.) and enumerates over
+small deviations by flipping one bit of the significand at a time.
+
+DEFINITION
+Base Values: Zero, One, MinSubNorm, MaxSubNorm, MinNorm, MaxNorm
+Operations: add, sub, multiply, fmadd, fmsub, fnmadd, fnmsub, sqrt
+Total test vectors generated: 19788
+
+For 32 b fp,
+Zero        0.000000 P-126
+One         1.000000 P0
+Minsubnorm  0.000001 P-126
+Maxsubnorm  0.7FFFFF P-126
+MinNorm     1.000000 P-126
+MaxNorm     1.7FFFFF P127
+
+=== Design choices & Impossible cases
 1. By significand, we took it as mantissa
 2. We don't test negative values of sqrt because they are tested in other models
+3. Because sqrt require operands that double the desired exponents, we can only generate sqrt cases for One.
+4. For add and subtract operations, we choose to set one of the operand exponents as the desired exponent, because when adding and subtracting numbers with different exponents, the exponents shift, and the loss of precision cannot be fully compensated with adjusting ulps.
+
+== General Procedure
+
+Challenge:
+When we shift ulp, the result will be rounded.
 
 We have to separate different parts of the desired result because
 1. We need to toggle every bit of the mantissa only
 2. we need to iterate through positive and negative desired values
 
-
-Bases is a dictionary with {
-    Zero: base_m, desired_exp
-}
-
-desiredResultGenerator(desired_result_sign, desired_result_m, desired_result_exp) -> returns desired result
-    returns desired_result_sign + desired_result_m + desired_result_exp
-
-addTest(fmt, desired_result) -> writes the test vector into the testvector file.
-    randomly generate a_sign
-    randomly generate a_m
-    randomly generate a_exp
-    a_hex = binary to hex(a)
-    subtract a by desired_result and get b directly as a hex starting from the 6th '_' in the result to the 7th
-    writes testvector
-subTest(fmt, sign, desired_result) -> writes the test vector into the testvector.
-    randomly generate a_sign
-    randomly generate a_m
-    randomly generate a_exp
-    a_hex = binary to hex(a)
-    add a and desired_result and get b directly as a hex starting from the 6th '_' in the result to the 7th
-    writes testvector
-mulTest(fmt, desired_result_exp, desired_result) -> writes the test vector into the testvector.
-    randomly generate a_sign
-    randomly generate a_m
-    randomly generate a_exp
-    a_hex = binary to hex(a)
-    divide desired_result by a to get b_hex
-    if (a_hex*b_hex equal to desired result)
-        writes testvector
-    elif (a_hex*b_hex less than desired result)
-        b adds one ulp
-        writes testvector
-    elif (a_hex*b_hex more than desired result)
-        b subtract one ulp
-        writes testvector
-divTest(fmt, desired_result) -> writes the test vector into the testvector. a/b=desired
-    randomly generate b_sign
-    randomly generate b_m
-    randomly generate b_exp
-    b_hex = binary to hex(b)
-    multiple desired_result by b to get a_hex
-    if (a_hex/b_hex equal to desired result)
-        writes testvector
-    elif (a_hex/b_hex less than desired result)
-        a adds one ulp
-        writes testvector
-    elif (a_hex/b_hex more than desired result)
-        a subtract one ulp
-        writes testvector
-sqrtTest(fmt, desired_result) given that desired_result is positive
-    a_hex = desired_result * desired_result
-    if (sqrt(a_hex) equal to desired result)
-        writes testvector
-    elif (sqrt(a_hex) less than desired result)
-        a adds one ulp
-        writes testvector
-    elif (sqrt(a_hex) more than desired result)
-        a subtract one ulp
-        writes testvector
-fmaddTest (a*b+c = desired result)
-    randomly generate a
-    randomly generate b
-    a_hex = binary to hex(a)
-    b_hex = binary to hex(b)
-    c_hex = fnmadd(a_hex, b_hex, desired_result)
-    if (fmadd(a_hex, b_hex, c_hex) equal to desired result)
-        writes testvector
-    elif (fmadd(a_hex, b_hex, c_hex) less than desired result)
-        c adds one ulp
-        writes testvector
-    elif (fmadd(a_hex, b_hex, c_hex) more than desired result)
-        c subtract one ulp
-        writes testvector
-fmsubTest (a*b-c = desired result)
-    randomly generate a
-    randomly generate b
-    a_hex = binary to hex(a)
-    b_hex = binary to hex(b)
-    c_hex = fmsub(a_hex, b_hex, desired_result)
-    if (fmsub(a_hex, b_hex, c_hex) equal to desired result)
-        writes testvector
-    elif (fmsub(a_hex, b_hex, c_hex) less than desired result)
-        c subtract one ulp
-        writes testvector
-    elif (fmsub(a_hex, b_hex, c_hex) more than desired result)
-        c add one ulp
-        writes testvector
-fnmaddTest (-a*b+c = desired result)
-    randomly generate a
-    randomly generate b
-    a_hex = binary to hex(a)
-    b_hex = binary to hex(b)
-    c_hex = fmadd(a_hex, b_hex, desired_result)
-    if (fnmadd(a_hex, b_hex, c_hex) equal to desired result)
-        writes testvector
-    elif (fnmadd(a_hex, b_hex, c_hex) less than desired result)
-        c adds one ulp
-        writes testvector
-    elif (fnmadd(a_hex, b_hex, c_hex) more than desired result)
-        c subtract one ulp
-        writes testvector
-fnmsubTest (-a*b-c = desired result)
-    randomly generate a
-    randomly generate b
-    a_hex = binary to hex(a)
-    b_hex = binary to hex(b)
-    c_hex = fnmsub(a_hex, b_hex, desired_result)
-    if (fnmsub(a_hex, b_hex, c_hex) equal to desired result)
-        writes testvector
-    elif (fnmsub(a_hex, b_hex, c_hex) less than desired result)
-        c subtract one ulp
-        writes testvector
-    elif (fnmsub(a_hex, b_hex, c_hex) more than desired result)
-        c add one ulp
-        writes testvector
-
-main
-for fmt in FORMATS
-    for base_m, desired_exp all bases:
-        for i in # of bits in fmt:
-            desired_m = base_m with bit i toggled
-                for sign in [0, 1]:
-                    desired_result = desiredResultGenerator(sign, desired_m, desired_exp,)
-                    addTest(fmt, desired_result)
-                    subTest(fmt, desired_result)
-                    mulTest(fmt, desired_result)
-                    divTest(fmt, desired_result)
-
-                    if sign == 0:
-                        sqrtTest(fmt, desired_result)
-
-                    fmaddTest(fmt, desired_result)
-                    fmsubTest(fmt, desired_result)
-                    fnmaddTest(fmt, desired_result)
-                    fnmsubTest(fmt, desired_result)
+addTest: check for maxnorm and constraints sign for maxnorm
+subTest: check for maxnorm and constraints sign for maxnorm
+mulTest: check for maxnorm to constraint operand exponents
+divTest: check for maxnorm to constraint operand exponents
+sqrtTest: nothing
+fmaddTest (a*b+c = desired result): check maxnorm to constraint operand exponents
+fmsubTest (a*b-c = desired result): check maxnorm to constraint operand exponents
+fnmaddTest (-a*b-c = desired result): check maxnorm to constraint operand exponents
+fnmsubTest (-a*b+c = desired result): check maxnorm to constraint operand exponents
