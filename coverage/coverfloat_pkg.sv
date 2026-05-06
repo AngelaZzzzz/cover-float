@@ -204,6 +204,13 @@ package coverfloat_pkg;
     logic [111:0] one;
     } max_int_struct;
 
+    // Helpers for finding the first fractional digit in FMA_PreAddition
+    parameter int F32_FMA_PRE_ADDITION_NF = 2 * F32_M_BITS;
+    parameter int F64_FMA_PRE_ADDITION_NF = 2 * F64_M_BITS;
+    parameter int F128_FMA_PRE_ADDITION_NF = 2 * F128_M_BITS;
+    parameter int F16_FMA_PRE_ADDITION_NF = 2 * F16_M_BITS;
+    parameter int BF16_FMA_PRE_ADDITION_NF = 2 * BF16_M_BITS;
+
     // Some Constants For B28
     // This value seems like an odd choice ... because it is a trivial task for rfi,
     // it seems like the intention should be 1.1111 * 2^(precision-2) as that is the maximum value
@@ -538,6 +545,37 @@ package coverfloat_pkg;
         return (E_a + E_b) + bias;
 
     endfunction
+
+    function automatic int get_effective_product_exponent(
+        input logic[127:0] a,
+        input logic[127:0] b,
+        input logic[255:0] pre_addition,
+        input logic [7:0] fmt
+    );
+        int shift_one;
+
+        case (fmt)
+            FMT_BF16: begin
+                shift_one = pre_addition[BF16_FMA_PRE_ADDITION_NF+1];
+            end
+            FMT_HALF: begin
+                shift_one = pre_addition[F16_FMA_PRE_ADDITION_NF+1];
+            end
+            FMT_SINGLE: begin
+                shift_one = pre_addition[F32_FMA_PRE_ADDITION_NF+1];
+            end
+            FMT_DOUBLE: begin
+                shift_one = pre_addition[F64_FMA_PRE_ADDITION_NF+1];
+            end
+            FMT_QUAD: begin
+                shift_one = pre_addition[F128_FMA_PRE_ADDITION_NF+1];
+            end
+        endcase
+
+        return get_product_exponent(a, b, fmt) + shift_one;
+
+    endfunction
+
 
     function automatic int get_unbiased_exponent(
         input logic [127:0] input_val,
