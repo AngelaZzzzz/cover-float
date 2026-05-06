@@ -303,104 +303,186 @@ covergroup B18_cg (virtual coverfloat_interface CFI);
     }
 
     /************************************************************************
-     * Overflow Boundary Helper Coverpoints (from B4, written by Corey Hickson)
+     * Overflow Boundary Helper Coverpoints (inspired by B4, written by Corey Hickson)
      ************************************************************************/
 
     // cases i & ii
-    F32_maxNorm_p_3ulp: coverpoint {CFI.fmaPreAddition[(F32_FMA_PRE_ADDITION_NF - F32_M_BITS - 1)], |CFI.fmaPreAddition[(F32_FMA_PRE_ADDITION_NF - F32_M_BITS - 2) : 0]}
-        iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_SINGLE) == F32_MAXNORM_EXP && CFI.fmaPreAddition[(F32_FMA_PRE_ADDITION_NF - 1) -: F32_M_BITS - 1] == '1) {
+    F32_maxNorm_p_3ulp: coverpoint (
+        CFI.fmaPreAddition[(F32_FMA_PRE_ADDITION_NF + 1)] == 1
+            //  leading zeros                                                    guard                                                           sticky
+            ? { |CFI.fmaPreAddition[F32_FMA_PRE_ADDITION_NF -: F32_M_BITS], CFI.fmaPreAddition[(F32_FMA_PRE_ADDITION_NF + 1) - F32_M_BITS - 1], |CFI.fmaPreAddition[(F32_FMA_PRE_ADDITION_NF + 1) - F32_M_BITS - 2 : 0] }
+            : { |CFI.fmaPreAddition[(F32_FMA_PRE_ADDITION_NF - 1) -: F32_M_BITS], CFI.fmaPreAddition[(F32_FMA_PRE_ADDITION_NF) - F32_M_BITS - 1], |CFI.fmaPreAddition[(F32_FMA_PRE_ADDITION_NF) - F32_M_BITS - 2 : 0] }
+    ) iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_SINGLE) == F32_MAXNORM_EXP) {
             type_option.weight = 0;
 
-            bins maxNorm_pm_3ulp[] = {[2'b00 : 2'b11]};
+            // Account for the leading zeros
+            bins maxNorm_p_3ulp[] = {[3'b000 : 3'b011]};
     }
-    F32_maxNorm_m_3ulp: coverpoint {CFI.fmaPreAddition[(F32_FMA_PRE_ADDITION_NF - F32_M_BITS)], |CFI.fmaPreAddition[(F32_FMA_PRE_ADDITION_NF - F32_M_BITS - 1) : 0]} // Minus one to the exponent means the ulp was shifted 1 to the left
-        iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_SINGLE) == (F32_MAXNORM_EXP - 1) && CFI.fmaPreAddition[(F32_FMA_PRE_ADDITION_NF - 1) -: F32_M_BITS] == '1) {
+    F32_maxNorm_m_3ulp: coverpoint (
+        CFI.fmaPreAddition[(F32_FMA_PRE_ADDITION_NF + 1)] == 1
+            //  leading ones                                                    guard                                                           sticky
+            ? { &CFI.fmaPreAddition[F32_FMA_PRE_ADDITION_NF -: F32_M_BITS-1], CFI.fmaPreAddition[(F32_FMA_PRE_ADDITION_NF + 1) - F32_M_BITS], |CFI.fmaPreAddition[(F32_FMA_PRE_ADDITION_NF + 1) - F32_M_BITS - 1 : 0] }
+            : { &CFI.fmaPreAddition[(F32_FMA_PRE_ADDITION_NF - 1) -: F32_M_BITS-1], CFI.fmaPreAddition[(F32_FMA_PRE_ADDITION_NF) - F32_M_BITS], |CFI.fmaPreAddition[(F32_FMA_PRE_ADDITION_NF) - F32_M_BITS - 1 : 0] }
+    ) iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_SINGLE) == (F32_MAXNORM_EXP-1)) {
             type_option.weight = 0;
 
-            bins maxNorm_pm_3ulp[] = {[2'b01 : 2'b11]};
-    }
-
-    F64_maxNorm_p_3ulp: coverpoint {CFI.fmaPreAddition[(F64_FMA_PRE_ADDITION_NF - F64_M_BITS - 1)], |CFI.fmaPreAddition[(F64_FMA_PRE_ADDITION_NF - F64_M_BITS - 2) : 0]}
-        iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_DOUBLE) == F64_MAXNORM_EXP && CFI.fmaPreAddition[(F64_FMA_PRE_ADDITION_NF - 1) -: F64_M_BITS - 1] == '1) {
-            type_option.weight = 0;
-
-            bins maxNorm_pm_3ulp[] = {[2'b00 : 2'b11]};
-    }
-    F64_maxNorm_m_3ulp: coverpoint {CFI.fmaPreAddition[(F64_FMA_PRE_ADDITION_NF - F64_M_BITS - 1)], |CFI.fmaPreAddition[(F64_FMA_PRE_ADDITION_NF - F64_M_BITS - 2) : 0]} // Minus one to the exponent means the ulp was shifted 1 to the left
-        iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_DOUBLE) == (F64_MAXNORM_EXP - 1) && CFI.fmaPreAddition[(F64_FMA_PRE_ADDITION_NF - 1) -: F64_M_BITS] == '1) {
-            type_option.weight = 0;
-
-            bins maxNorm_pm_3ulp[] = {[2'b01 : 2'b11]};
+            // Account for the leading ones
+            bins maxNorm_p_3ulp[] = {[3'b100 : 3'b111]};
     }
 
-    F128_maxNorm_p_3ulp: coverpoint {CFI.fmaPreAddition[(F128_FMA_PRE_ADDITION_NF - F128_M_BITS - 1)], |CFI.fmaPreAddition[(F128_FMA_PRE_ADDITION_NF - F128_M_BITS - 2) : 0]}
-        iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_QUAD) == F128_MAXNORM_EXP && CFI.fmaPreAddition[(F128_FMA_PRE_ADDITION_NF - 1) -: F128_M_BITS - 1] == '1) {
+    F64_maxNorm_p_3ulp: coverpoint (
+        CFI.fmaPreAddition[(F64_FMA_PRE_ADDITION_NF + 1)] == 1
+            //  leading zeros                                                    guard                                                           sticky
+            ? { |CFI.fmaPreAddition[F64_FMA_PRE_ADDITION_NF -: F64_M_BITS], CFI.fmaPreAddition[(F64_FMA_PRE_ADDITION_NF + 1) - F64_M_BITS - 1], |CFI.fmaPreAddition[(F64_FMA_PRE_ADDITION_NF + 1) - F64_M_BITS - 2 : 0] }
+            : { |CFI.fmaPreAddition[(F64_FMA_PRE_ADDITION_NF - 1) -: F64_M_BITS], CFI.fmaPreAddition[(F64_FMA_PRE_ADDITION_NF) - F64_M_BITS - 1], |CFI.fmaPreAddition[(F64_FMA_PRE_ADDITION_NF) - F64_M_BITS - 2 : 0] }
+    ) iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_DOUBLE) == F64_MAXNORM_EXP) {
             type_option.weight = 0;
 
-            bins maxNorm_pm_3ulp[] = {[2'b00 : 2'b11]};
+            // Account for the leading zeros
+            bins maxNorm_p_3ulp[] = {[3'b000 : 3'b011]};
     }
-    F128_maxNorm_m_3ulp: coverpoint {CFI.fmaPreAddition[(F128_FMA_PRE_ADDITION_NF - F128_M_BITS)], |CFI.fmaPreAddition[(F128_FMA_PRE_ADDITION_NF - F128_M_BITS - 1) : 0]} // Minus one to the exponent means the ulp was shifted 1 to the left
-        iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_QUAD) == (F128_MAXNORM_EXP - 1) && CFI.fmaPreAddition[(F128_FMA_PRE_ADDITION_NF - 1) -: F128_M_BITS] == '1) {
+    F64_maxNorm_m_3ulp: coverpoint (
+        CFI.fmaPreAddition[(F64_FMA_PRE_ADDITION_NF + 1)] == 1
+            //  leading ones                                                    guard                                                           sticky
+            ? { &CFI.fmaPreAddition[F64_FMA_PRE_ADDITION_NF -: F64_M_BITS-1], CFI.fmaPreAddition[(F64_FMA_PRE_ADDITION_NF + 1) - F64_M_BITS], |CFI.fmaPreAddition[(F64_FMA_PRE_ADDITION_NF + 1) - F64_M_BITS - 1 : 0] }
+            : { &CFI.fmaPreAddition[(F64_FMA_PRE_ADDITION_NF - 1) -: F64_M_BITS-1], CFI.fmaPreAddition[(F64_FMA_PRE_ADDITION_NF) - F64_M_BITS], |CFI.fmaPreAddition[(F64_FMA_PRE_ADDITION_NF) - F64_M_BITS - 1 : 0] }
+    ) iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_DOUBLE) == (F64_MAXNORM_EXP-1)) {
             type_option.weight = 0;
 
-            bins maxNorm_pm_3ulp[] = {[2'b01 : 2'b11]};
-    }
-
-    F16_maxNorm_p_3ulp: coverpoint {CFI.fmaPreAddition[(F16_FMA_PRE_ADDITION_NF - F16_M_BITS - 1)], |CFI.fmaPreAddition[(F16_FMA_PRE_ADDITION_NF - F16_M_BITS - 2) : 0]}
-        iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_HALF) == F16_MAXNORM_EXP && CFI.fmaPreAddition[(F16_FMA_PRE_ADDITION_NF - 1) -: F16_M_BITS - 1] == '1) {
-            type_option.weight = 0;
-
-            bins maxNorm_pm_3ulp[] = {[2'b00 : 2'b11]};
-    }
-    F16_maxNorm_m_3ulp: coverpoint {CFI.fmaPreAddition[(F16_FMA_PRE_ADDITION_NF - F16_M_BITS)], |CFI.fmaPreAddition[(F16_FMA_PRE_ADDITION_NF - F16_M_BITS - 1) : 0]} // Minus one to the exponent means the ulp was shifted 1 to the left
-        iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_HALF) == (F16_MAXNORM_EXP - 1) && CFI.fmaPreAddition[(F16_FMA_PRE_ADDITION_NF - 1) -: F16_M_BITS] == '1) {
-            type_option.weight = 0;
-
-            bins maxNorm_pm_3ulp[] = {[2'b01 : 2'b11]};
+            // Account for the leading ones
+            bins maxNorm_p_3ulp[] = {[3'b100 : 3'b111]};
     }
 
-    BF16_maxNorm_p_3ulp: coverpoint {CFI.fmaPreAddition[(BF16_FMA_PRE_ADDITION_NF - BF16_M_BITS - 1)], |CFI.fmaPreAddition[(BF16_FMA_PRE_ADDITION_NF - BF16_M_BITS - 2) : 0]}
-        iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_BF16) == BF16_MAXNORM_EXP && CFI.fmaPreAddition[(BF16_FMA_PRE_ADDITION_NF - 1) -: BF16_M_BITS - 1] == '1) {
+    F128_maxNorm_p_3ulp: coverpoint (
+        CFI.fmaPreAddition[(F128_FMA_PRE_ADDITION_NF + 1)] == 1
+            //  leading zeros                                                    guard                                                           sticky
+            ? { |CFI.fmaPreAddition[F128_FMA_PRE_ADDITION_NF -: F128_M_BITS], CFI.fmaPreAddition[(F128_FMA_PRE_ADDITION_NF + 1) - F128_M_BITS - 1], |CFI.fmaPreAddition[(F128_FMA_PRE_ADDITION_NF + 1) - F128_M_BITS - 2 : 0] }
+            : { |CFI.fmaPreAddition[(F128_FMA_PRE_ADDITION_NF - 1) -: F128_M_BITS], CFI.fmaPreAddition[(F128_FMA_PRE_ADDITION_NF) - F128_M_BITS - 1], |CFI.fmaPreAddition[(F128_FMA_PRE_ADDITION_NF) - F128_M_BITS - 2 : 0] }
+    ) iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_QUAD) == F128_MAXNORM_EXP) {
             type_option.weight = 0;
 
-            bins maxNorm_pm_3ulp[] = {[2'b00 : 2'b11]};
+            // Account for the leading zeros
+            bins maxNorm_p_3ulp[] = {[3'b000 : 3'b011]};
     }
-    BF16_maxNorm_m_3ulp: coverpoint {CFI.fmaPreAddition[(BF16_FMA_PRE_ADDITION_NF - BF16_M_BITS)], |CFI.fmaPreAddition[(BF16_FMA_PRE_ADDITION_NF - BF16_M_BITS - 1) : 0]} // Minus one to the exponent means the ulp was shifted 1 to the left
-        iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_BF16) == (BF16_MAXNORM_EXP - 1) && CFI.fmaPreAddition[(BF16_FMA_PRE_ADDITION_NF - 1) -: BF16_M_BITS] == '1) {
+    F128_maxNorm_m_3ulp: coverpoint (
+        CFI.fmaPreAddition[(F128_FMA_PRE_ADDITION_NF + 1)] == 1
+            //  leading ones                                                    guard                                                           sticky
+            ? { &CFI.fmaPreAddition[F128_FMA_PRE_ADDITION_NF -: F128_M_BITS-1], CFI.fmaPreAddition[(F128_FMA_PRE_ADDITION_NF + 1) - F128_M_BITS], |CFI.fmaPreAddition[(F128_FMA_PRE_ADDITION_NF + 1) - F128_M_BITS - 1 : 0] }
+            : { &CFI.fmaPreAddition[(F128_FMA_PRE_ADDITION_NF - 1) -: F128_M_BITS-1], CFI.fmaPreAddition[(F128_FMA_PRE_ADDITION_NF) - F128_M_BITS], |CFI.fmaPreAddition[(F128_FMA_PRE_ADDITION_NF) - F128_M_BITS - 1 : 0] }
+    ) iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_QUAD) == (F128_MAXNORM_EXP-1)) {
             type_option.weight = 0;
 
-            bins maxNorm_pm_3ulp[] = {[2'b01 : 2'b11]};
+            // Account for the leading ones
+            bins maxNorm_p_3ulp[] = {[3'b100 : 3'b111]};
+    }
+
+    F16_maxNorm_p_3ulp: coverpoint (
+        CFI.fmaPreAddition[(F16_FMA_PRE_ADDITION_NF + 1)] == 1
+            //  leading zeros                                                    guard                                                           sticky
+            ? { |CFI.fmaPreAddition[F16_FMA_PRE_ADDITION_NF -: F16_M_BITS], CFI.fmaPreAddition[(F16_FMA_PRE_ADDITION_NF + 1) - F16_M_BITS - 1], |CFI.fmaPreAddition[(F16_FMA_PRE_ADDITION_NF + 1) - F16_M_BITS - 2 : 0] }
+            : { |CFI.fmaPreAddition[(F16_FMA_PRE_ADDITION_NF - 1) -: F16_M_BITS], CFI.fmaPreAddition[(F16_FMA_PRE_ADDITION_NF) - F16_M_BITS - 1], |CFI.fmaPreAddition[(F16_FMA_PRE_ADDITION_NF) - F16_M_BITS - 2 : 0] }
+    ) iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_HALF) == F16_MAXNORM_EXP) {
+            type_option.weight = 0;
+
+            // Account for the leading zeros
+            bins maxNorm_p_3ulp[] = {[3'b000 : 3'b011]};
+    }
+    F16_maxNorm_m_3ulp: coverpoint (
+        CFI.fmaPreAddition[(F16_FMA_PRE_ADDITION_NF + 1)] == 1
+            //  leading ones                                                    guard                                                           sticky
+            ? { &CFI.fmaPreAddition[F16_FMA_PRE_ADDITION_NF -: F16_M_BITS-1], CFI.fmaPreAddition[(F16_FMA_PRE_ADDITION_NF + 1) - F16_M_BITS], |CFI.fmaPreAddition[(F16_FMA_PRE_ADDITION_NF + 1) - F16_M_BITS - 1 : 0] }
+            : { &CFI.fmaPreAddition[(F16_FMA_PRE_ADDITION_NF - 1) -: F16_M_BITS-1], CFI.fmaPreAddition[(F16_FMA_PRE_ADDITION_NF) - F16_M_BITS], |CFI.fmaPreAddition[(F16_FMA_PRE_ADDITION_NF) - F16_M_BITS - 1 : 0] }
+    ) iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_HALF) == (F16_MAXNORM_EXP-1)) {
+            type_option.weight = 0;
+
+            // Account for the leading ones
+            bins maxNorm_p_3ulp[] = {[3'b100 : 3'b111]};
+    }
+
+    BF16_maxNorm_p_3ulp: coverpoint (
+        CFI.fmaPreAddition[(BF16_FMA_PRE_ADDITION_NF + 1)] == 1
+            //  leading zeros                                                    guard                                                           sticky
+            ? { |CFI.fmaPreAddition[BF16_FMA_PRE_ADDITION_NF -: BF16_M_BITS], CFI.fmaPreAddition[(BF16_FMA_PRE_ADDITION_NF + 1) - BF16_M_BITS - 1], |CFI.fmaPreAddition[(BF16_FMA_PRE_ADDITION_NF + 1) - BF16_M_BITS - 2 : 0] }
+            : { |CFI.fmaPreAddition[(BF16_FMA_PRE_ADDITION_NF - 1) -: BF16_M_BITS], CFI.fmaPreAddition[(BF16_FMA_PRE_ADDITION_NF) - BF16_M_BITS - 1], |CFI.fmaPreAddition[(BF16_FMA_PRE_ADDITION_NF) - BF16_M_BITS - 2 : 0] }
+    ) iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_BF16) == BF16_MAXNORM_EXP) {
+            type_option.weight = 0;
+
+            // Account for the leading zeros
+            bins maxNorm_p_3ulp[] = {[3'b000 : 3'b011]};
+    }
+    BF16_maxNorm_m_3ulp: coverpoint (
+        CFI.fmaPreAddition[(BF16_FMA_PRE_ADDITION_NF + 1)] == 1
+            //  leading ones                                                    guard                                                           sticky
+            ? { &CFI.fmaPreAddition[BF16_FMA_PRE_ADDITION_NF -: BF16_M_BITS-1], CFI.fmaPreAddition[(BF16_FMA_PRE_ADDITION_NF + 1) - BF16_M_BITS], |CFI.fmaPreAddition[(BF16_FMA_PRE_ADDITION_NF + 1) - BF16_M_BITS - 1 : 0] }
+            : { &CFI.fmaPreAddition[(BF16_FMA_PRE_ADDITION_NF - 1) -: BF16_M_BITS-1], CFI.fmaPreAddition[(BF16_FMA_PRE_ADDITION_NF) - BF16_M_BITS], |CFI.fmaPreAddition[(BF16_FMA_PRE_ADDITION_NF) - BF16_M_BITS - 1 : 0] }
+    ) iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_BF16) == (BF16_MAXNORM_EXP-1)) {
+            type_option.weight = 0;
+
+            // Account for the leading ones
+            bins maxNorm_p_3ulp[] = {[3'b100 : 3'b111]};
     }
 
     // cases iii & iv
-    F32_gt_maxNorm_p_3ulp: coverpoint CFI.fmaPreAddition iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_SINGLE) == F32_MAXNORM_EXP) {
+
+    // If we are greater than p_3 ulp, something is in the first M_BITS fractional bits
+    F32_gt_maxNorm_p_3ulp: coverpoint (
+        (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_SINGLE) == F32_MAXNORM_EXP)
+            ? (CFI.fmaPreAddition[(F32_FMA_PRE_ADDITION_NF + 1)] == 1
+                ? |CFI.fmaPreAddition[F32_FMA_PRE_ADDITION_NF -: F32_M_BITS]
+                : |CFI.fmaPreAddition[F32_FMA_PRE_ADDITION_NF - 1 -: F32_M_BITS])
+            : '1
+    ) iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_SINGLE) >= F32_MAXNORM_EXP) {
         type_option.weight = 0;
 
-        bins gt_maxNorm = {[ ('1 << (F32_FMA_PRE_ADDITION_NF - F32_M_BITS - 2)) : $]};
+        bins gt_maxNorm_p_3ulp = { 1 };
     }
 
-    F64_gt_maxNorm_p_3ulp: coverpoint CFI.fmaPreAddition iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_DOUBLE) == F64_MAXNORM_EXP) {
+    F64_gt_maxNorm_p_3ulp: coverpoint (
+        (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_DOUBLE) == F64_MAXNORM_EXP)
+            ? (CFI.fmaPreAddition[(F64_FMA_PRE_ADDITION_NF + 1)] == 1
+                ? |CFI.fmaPreAddition[F64_FMA_PRE_ADDITION_NF -: F64_M_BITS]
+                : |CFI.fmaPreAddition[F64_FMA_PRE_ADDITION_NF - 1 -: F64_M_BITS])
+            : '1
+    ) iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_DOUBLE) >= F64_MAXNORM_EXP) {
         type_option.weight = 0;
 
-        bins gt_maxNorm = {[ ('1 << (F64_FMA_PRE_ADDITION_NF - F64_M_BITS - 2)) : $]};
+        bins gt_maxNorm_p_3ulp = { 1 };
     }
 
-    F128_gt_maxNorm_p_3ulp: coverpoint CFI.fmaPreAddition iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_QUAD) == F128_MAXNORM_EXP) {
+    F128_gt_maxNorm_p_3ulp: coverpoint (
+        (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_QUAD) == F128_MAXNORM_EXP)
+            ? (CFI.fmaPreAddition[(F128_FMA_PRE_ADDITION_NF + 1)] == 1
+                ? |CFI.fmaPreAddition[F128_FMA_PRE_ADDITION_NF -: F128_M_BITS]
+                : |CFI.fmaPreAddition[F128_FMA_PRE_ADDITION_NF - 1 -: F128_M_BITS])
+            : '1
+    ) iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_QUAD) >= F128_MAXNORM_EXP) {
         type_option.weight = 0;
 
-        bins gt_maxNorm = {[ ('1 << (F128_FMA_PRE_ADDITION_NF - F128_M_BITS - 2)) : $]};
+        bins gt_maxNorm_p_3ulp = { 1 };
     }
 
-    F16_gt_maxNorm_p_3ulp: coverpoint CFI.fmaPreAddition iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_HALF) == F16_MAXNORM_EXP) {
+    F16_gt_maxNorm_p_3ulp: coverpoint (
+        (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_HALF) == F16_MAXNORM_EXP)
+            ? (CFI.fmaPreAddition[(F16_FMA_PRE_ADDITION_NF + 1)] == 1
+                ? |CFI.fmaPreAddition[F16_FMA_PRE_ADDITION_NF -: F16_M_BITS]
+                : |CFI.fmaPreAddition[F16_FMA_PRE_ADDITION_NF - 1 -: F16_M_BITS])
+            : '1
+    ) iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_HALF) >= F16_MAXNORM_EXP) {
         type_option.weight = 0;
 
-        bins gt_maxNorm = {[ ('1 << (F16_FMA_PRE_ADDITION_NF - F16_M_BITS - 2)) : $]};
+        bins gt_maxNorm_p_3ulp = { 1 };
     }
 
-    BF16_gt_maxNorm_p_3ulp: coverpoint CFI.fmaPreAddition iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_BF16) == BF16_MAXNORM_EXP) {
+    BF16_gt_maxNorm_p_3ulp: coverpoint (
+        (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_BF16) == BF16_MAXNORM_EXP)
+            ? (CFI.fmaPreAddition[(BF16_FMA_PRE_ADDITION_NF + 1)] == 1
+                ? |CFI.fmaPreAddition[BF16_FMA_PRE_ADDITION_NF -: BF16_M_BITS]
+                : |CFI.fmaPreAddition[BF16_FMA_PRE_ADDITION_NF - 1 -: BF16_M_BITS])
+            : '1
+    ) iff (get_effective_product_exponent(CFI.a, CFI.b, CFI.fmaPreAddition, FMT_BF16) >= BF16_MAXNORM_EXP) {
         type_option.weight = 0;
 
-        bins gt_maxNorm = {[ ('1 << (BF16_FMA_PRE_ADDITION_NF - BF16_M_BITS - 2)) : $]};
+        bins gt_maxNorm_p_3ulp = { 1 };
     }
 
     // case v
@@ -432,7 +514,7 @@ covergroup B18_cg (virtual coverfloat_interface CFI);
 
 
     /************************************************************************
-    Underflow Boundary Helper Coverpoints (from B5, commit: f5a2369 by Corey Hickson)
+    Underflow Boundary Helper Coverpoints (inspired by B5, commit: f5a2369 by Corey Hickson)
     ************************************************************************/
 
      // cases i & ii
@@ -811,20 +893,20 @@ covergroup B18_cg (virtual coverfloat_interface CFI);
         bins no_overflow = { 0 };
     }
 
-    FP_no_underflow: coverpoint (CFI.exceptionBits & FLAG_UNDERFLOW_MASK != 0) {
+    FP_no_underflow: coverpoint (CFI.exceptionBits & FLAG_UNDERFLOW_MASK) {
         type_option.weight = 0;
 
-        bins no_underflow = { [0:1] };
+        bins no_underflow = { 0 };
     }
 
 
     `ifdef COVER_F32
         B18_case_i_f32: cross F32_src_fmt, FMA_ops, F32_product_lsb, F32_product_guard, F32_product_sticky, F32_interm_guard_zero, F32_interm_sticky_zero, F32_normal_multiplication;
 
-        // B18_case_ii_b4_maxNorm_p_3ulp_f32: cross F32_src_fmt, FMA_ops, F32_sign, F32_maxNorm_p_3ulp, FP_no_overflow;
-        // B18_case_ii_b4_maxNorm_m_3ulp_f32: cross F32_src_fmt, FMA_ops, F32_sign, F32_maxNorm_m_3ulp, FP_no_overflow;
-        // B18_case_ii_b4_gt_maxNorm_p_3ulp_f32: cross F32_src_fmt, FMA_ops, F32_sign, F32_gt_maxNorm_p_3ulp, FP_no_overflow;
-        // B18_case_ii_b4_maxNorm_pm3_exp_range_f32: cross F32_src_fmt, FMA_ops, F32_sign, F32_maxNorm_pm3_exp_range, FP_no_overflow;
+        B18_case_ii_b4_maxNorm_p_3ulp_f32: cross F32_src_fmt, FMA_ops, F32_sign, F32_maxNorm_p_3ulp, FP_no_overflow;
+        B18_case_ii_b4_maxNorm_m_3ulp_f32: cross F32_src_fmt, FMA_ops, F32_sign, F32_maxNorm_m_3ulp, FP_no_overflow;
+        B18_case_ii_b4_gt_maxNorm_p_3ulp_f32: cross F32_src_fmt, FMA_ops, F32_sign, F32_gt_maxNorm_p_3ulp, FP_no_overflow;
+        B18_case_ii_b4_maxNorm_pm3_exp_range_f32: cross F32_src_fmt, FMA_ops, F32_sign, F32_maxNorm_pm3_exp_range, FP_no_overflow;
 
         B18_case_iii_b5_subnorm_f32: cross F32_src_fmt, FMA_ops, F32_sign, F32_subnorm, FP_no_underflow;
         B18_case_iii_b5_minSubNorm_p_3ulp_f32: cross F32_src_fmt, FMA_ops, F32_sign, F32_minSubNorm_p_3ulp, FP_no_underflow;
@@ -839,10 +921,10 @@ covergroup B18_cg (virtual coverfloat_interface CFI);
     `ifdef COVER_F64
         B18_case_i_f64: cross F64_src_fmt, FMA_ops, F64_product_lsb, F64_product_guard, F64_product_sticky, F64_interm_guard_zero, F64_interm_sticky_zero, F64_normal_multiplication;
 
-        // B18_case_ii_b4_maxNorm_p_3ulp_f64: cross F64_src_fmt, FMA_ops, F64_sign, F64_maxNorm_p_3ulp, FP_no_overflow;
-        // B18_case_ii_b4_maxNorm_m_3ulp_f64: cross F64_src_fmt, FMA_ops, F64_sign, F64_maxNorm_m_3ulp, FP_no_overflow;
-        // B18_case_ii_b4_gt_maxNorm_p_3ulp_f64: cross F64_src_fmt, FMA_ops, F64_sign, F64_gt_maxNorm_p_3ulp, FP_no_overflow;
-        // B18_case_ii_b4_maxNorm_pm3_exp_range_f64: cross F64_src_fmt, FMA_ops, F64_sign, F64_maxNorm_pm3_exp_range, FP_no_overflow;
+        B18_case_ii_b4_maxNorm_p_3ulp_f64: cross F64_src_fmt, FMA_ops, F64_sign, F64_maxNorm_p_3ulp, FP_no_overflow;
+        B18_case_ii_b4_maxNorm_m_3ulp_f64: cross F64_src_fmt, FMA_ops, F64_sign, F64_maxNorm_m_3ulp, FP_no_overflow;
+        B18_case_ii_b4_gt_maxNorm_p_3ulp_f64: cross F64_src_fmt, FMA_ops, F64_sign, F64_gt_maxNorm_p_3ulp, FP_no_overflow;
+        B18_case_ii_b4_maxNorm_pm3_exp_range_f64: cross F64_src_fmt, FMA_ops, F64_sign, F64_maxNorm_pm3_exp_range, FP_no_overflow;
 
         B18_case_iii_b5_subnorm_f64: cross F64_src_fmt, FMA_ops, F64_sign, F64_subnorm, FP_no_underflow;
         B18_case_iii_b5_minSubNorm_p_3ulp_f64: cross F64_src_fmt, FMA_ops, F64_sign, F64_minSubNorm_p_3ulp, FP_no_underflow;
@@ -856,10 +938,10 @@ covergroup B18_cg (virtual coverfloat_interface CFI);
     `ifdef COVER_F128
         B18_case_i_f128: cross F128_src_fmt, FMA_ops, F128_product_lsb, F128_product_guard, F128_product_sticky, F128_interm_guard_zero, F128_interm_sticky_zero, F128_normal_multiplication;
 
-        // B18_case_ii_b4_maxNorm_p_3ulp_f128: cross F128_src_fmt, FMA_ops, F128_sign, F128_maxNorm_p_3ulp, FP_no_overflow;
-        // B18_case_ii_b4_maxNorm_m_3ulp_f128: cross F128_src_fmt, FMA_ops, F128_sign, F128_maxNorm_m_3ulp, FP_no_overflow;
-        // B18_case_ii_b4_gt_maxNorm_p_3ulp_f128: cross F128_src_fmt, FMA_ops, F128_sign, F128_gt_maxNorm_p_3ulp, FP_no_overflow;
-        // B18_case_ii_b4_maxNorm_pm3_exp_range_f128: cross F128_src_fmt, FMA_ops, F128_sign, F128_maxNorm_pm3_exp_range, FP_no_overflow;
+        B18_case_ii_b4_maxNorm_p_3ulp_f128: cross F128_src_fmt, FMA_ops, F128_sign, F128_maxNorm_p_3ulp, FP_no_overflow;
+        B18_case_ii_b4_maxNorm_m_3ulp_f128: cross F128_src_fmt, FMA_ops, F128_sign, F128_maxNorm_m_3ulp, FP_no_overflow;
+        B18_case_ii_b4_gt_maxNorm_p_3ulp_f128: cross F128_src_fmt, FMA_ops, F128_sign, F128_gt_maxNorm_p_3ulp, FP_no_overflow;
+        B18_case_ii_b4_maxNorm_pm3_exp_range_f128: cross F128_src_fmt, FMA_ops, F128_sign, F128_maxNorm_pm3_exp_range, FP_no_overflow;
 
         B18_case_iii_b5_subnorm_f128: cross F128_src_fmt, FMA_ops, F128_sign, F128_subnorm, FP_no_underflow;
         B18_case_iii_b5_minSubNorm_p_3ulp_f128: cross F128_src_fmt, FMA_ops, F128_sign, F128_minSubNorm_p_3ulp, FP_no_underflow;
