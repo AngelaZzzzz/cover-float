@@ -636,7 +636,7 @@ covergroup B18_cg (virtual coverfloat_interface CFI);
         bins no_overflow = { 0 };
     }
 
-    FP_no_underflow: coverpoint (CFI.exceptionBits & FLAG_OVERFLOW_MASK) {
+    FP_no_underflow: coverpoint (CFI.exceptionBits & FLAG_UNDERFLOW_MASK) {
         type_option.weight = 0;
 
         bins no_overflow = { 0 };
