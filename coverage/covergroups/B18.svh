@@ -955,10 +955,10 @@ covergroup B18_cg (virtual coverfloat_interface CFI);
     `ifdef COVER_F16
         B18_case_i_f16: cross F16_src_fmt, FMA_ops, F16_product_lsb, F16_product_guard, F16_product_sticky, F16_interm_guard_zero, F16_interm_sticky_zero, F16_normal_multiplication;
 
-        // B18_case_ii_b4_maxNorm_p_3ulp_f16: cross F16_src_fmt, FMA_ops, F16_sign, F16_maxNorm_p_3ulp, FP_no_overflow;
-        // B18_case_ii_b4_maxNorm_m_3ulp_f16: cross F16_src_fmt, FMA_ops, F16_sign, F16_maxNorm_m_3ulp, FP_no_overflow;
-        // B18_case_ii_b4_gt_maxNorm_p_3ulp_f16: cross F16_src_fmt, FMA_ops, F16_sign, F16_gt_maxNorm_p_3ulp, FP_no_overflow;
-        // B18_case_ii_b4_maxNorm_pm3_exp_range_f16: cross F16_src_fmt, FMA_ops, F16_sign, F16_maxNorm_pm3_exp_range, FP_no_overflow;
+        B18_case_ii_b4_maxNorm_p_3ulp_f16: cross F16_src_fmt, FMA_ops, F16_sign, F16_maxNorm_p_3ulp, FP_no_overflow;
+        B18_case_ii_b4_maxNorm_m_3ulp_f16: cross F16_src_fmt, FMA_ops, F16_sign, F16_maxNorm_m_3ulp, FP_no_overflow;
+        B18_case_ii_b4_gt_maxNorm_p_3ulp_f16: cross F16_src_fmt, FMA_ops, F16_sign, F16_gt_maxNorm_p_3ulp, FP_no_overflow;
+        B18_case_ii_b4_maxNorm_pm3_exp_range_f16: cross F16_src_fmt, FMA_ops, F16_sign, F16_maxNorm_pm3_exp_range, FP_no_overflow;
 
         B18_case_iii_b5_subnorm_f16: cross F16_src_fmt, FMA_ops, F16_sign, F16_subnorm, FP_no_underflow;
         B18_case_iii_b5_minSubNorm_p_3ulp_f16: cross F16_src_fmt, FMA_ops, F16_sign, F16_minSubNorm_p_3ulp, FP_no_underflow;
@@ -972,10 +972,10 @@ covergroup B18_cg (virtual coverfloat_interface CFI);
     `ifdef COVER_BF16
         B18_case_i_bf16: cross BF16_src_fmt, FMA_ops, BF16_product_lsb, BF16_product_guard, BF16_product_sticky, BF16_interm_guard_zero, BF16_interm_sticky_zero, BF16_normal_multiplication;
 
-        // B18_case_ii_b4_maxNorm_p_3ulp_bf16: cross BF16_src_fmt, FMA_ops, BF16_sign, BF16_maxNorm_p_3ulp, FP_no_overflow;
-        // B18_case_ii_b4_maxNorm_m_3ulp_bf16: cross BF16_src_fmt, FMA_ops, BF16_sign, BF16_maxNorm_m_3ulp, FP_no_overflow;
-        // B18_case_ii_b4_gt_maxNorm_p_3ulp_bf16: cross BF16_src_fmt, FMA_ops, BF16_sign, BF16_gt_maxNorm_p_3ulp, FP_no_overflow;
-        // B18_case_ii_b4_maxNorm_pm3_exp_range_bf16: cross BF16_src_fmt, FMA_ops, BF16_sign, BF16_maxNorm_pm3_exp_range, FP_no_overflow;
+        B18_case_ii_b4_maxNorm_p_3ulp_bf16: cross BF16_src_fmt, FMA_ops, BF16_sign, BF16_maxNorm_p_3ulp, FP_no_overflow;
+        B18_case_ii_b4_maxNorm_m_3ulp_bf16: cross BF16_src_fmt, FMA_ops, BF16_sign, BF16_maxNorm_m_3ulp, FP_no_overflow;
+        B18_case_ii_b4_gt_maxNorm_p_3ulp_bf16: cross BF16_src_fmt, FMA_ops, BF16_sign, BF16_gt_maxNorm_p_3ulp, FP_no_overflow;
+        B18_case_ii_b4_maxNorm_pm3_exp_range_bf16: cross BF16_src_fmt, FMA_ops, BF16_sign, BF16_maxNorm_pm3_exp_range, FP_no_overflow;
 
         B18_case_iii_b5_subnorm_bf16: cross BF16_src_fmt, FMA_ops, BF16_sign, BF16_subnorm, FP_no_underflow;
         B18_case_iii_b5_minSubNorm_p_3ulp_bf16: cross BF16_src_fmt, FMA_ops, BF16_sign, BF16_minSubNorm_p_3ulp, FP_no_underflow;
