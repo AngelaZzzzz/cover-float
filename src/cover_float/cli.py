@@ -88,7 +88,7 @@ def testgen() -> None:
     else:
         executor = ProcessPoolExecutor() if args.jobs is None else ProcessPoolExecutor(max_workers=args.jobs)
 
-    with log.StatusReporter(disable=args.quiet) as logger, executor:
+    with log.StatusReporter(disable=(args.quiet > 0)) as logger, executor:
         futures: list[Future[None]] = []
 
         if args.models is None:
