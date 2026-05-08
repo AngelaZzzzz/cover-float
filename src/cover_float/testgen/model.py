@@ -13,22 +13,29 @@
 # either express or implied. See the License for the specific language governing permissions
 # and limitations under the License.
 
+from __future__ import annotations
+
 import concurrent.futures
+import inspect
 import logging
 import logging.handlers
+import os
 from pathlib import Path
 from queue import Queue
 from typing import Any, Callable, TextIO
 
 from rich.progress import TaskID
 
+import cover_float.common.constants as constants
 import cover_float.common.log as log
 from cover_float.scripts.postprocess import postprocess_testvectors
 
 GLOBAL_MODELS: dict[
-    str, Callable[[Path, log.StatusReporter, concurrent.futures.Executor], concurrent.futures.Future[None]]
+    str, Callable[[Path, log.StatusReporter, concurrent.futures.Executor], concurrent.futures.Future[None] | None]
 ] = {}
 GLOBAL_MODEL_FUNCTIONS: dict[str, Callable[[TextIO, TextIO], None]] = {}
+
+PARTIAL_OUTPUT_MESSAGE = "# Generated With --partial-output\n"
 
 
 class MPLoggingHandler(logging.Handler):
@@ -57,7 +64,7 @@ def _run_model_by_name(
     post_process: bool,
 ) -> None:
     tv_path = output_dir / "testvectors" / f"{model_name}_tv.txt"
-    cv_path = output_dir / "covervectors" / f"{model_name}_cv.txt"
+    cv_path = output_dir / "covervectors" / f"{model_name}_cv.txt" if not constants.config.RELEASE else Path(os.devnull)
 
     model_logger = logging.getLogger(model_name)
 
@@ -80,6 +87,9 @@ def _run_model_by_name(
 
     try:
         with tv_path.open("w") as test_f, cv_path.open("w") as cover_f:
+            if not constants.config.FULL_COVERAGE_TESTGEN:
+                test_f.write(PARTIAL_OUTPUT_MESSAGE)
+                cover_f.write(PARTIAL_OUTPUT_MESSAGE)
             GLOBAL_MODEL_FUNCTIONS[model_name](test_f, cover_f)
 
         if post_process:
@@ -96,32 +106,66 @@ def register_model(
     model_name: str,
 ) -> Callable[
     [Callable[[TextIO, TextIO], None]],
-    Callable[[Path, log.StatusReporter, concurrent.futures.Executor], concurrent.futures.Future[None]],
+    Callable[[Path, log.StatusReporter, concurrent.futures.Executor], concurrent.futures.Future[None] | None],
 ]:
     def inner(
         fn: Callable[[TextIO, TextIO], None],
-    ) -> Callable[[Path, log.StatusReporter, concurrent.futures.Executor], concurrent.futures.Future[None]]:
+    ) -> Callable[[Path, log.StatusReporter, concurrent.futures.Executor], concurrent.futures.Future[None] | None]:
         # Store the function in a global dict so it can be accessed by the worker process
         GLOBAL_MODEL_FUNCTIONS[model_name] = fn
+        source_file = Path(inspect.getfile(fn))
 
         def wrapper(
             output_dir: Path,
             status_reporter: log.StatusReporter,
             executor: concurrent.futures.Executor,
             post_process: bool = True,
-        ) -> concurrent.futures.Future[None]:
-            task_id = status_reporter.start_model(model_name)
+        ) -> concurrent.futures.Future[None] | None:
+            # Check generation time of target files
+            tv_path = output_dir / "testvectors" / f"{model_name}_tv.txt"
+            tv_mod_time = tv_path.stat().st_mtime if tv_path.exists() else 0
 
-            future = executor.submit(
-                _run_model_by_name,
-                model_name,
-                output_dir,
-                task_id,
-                status_reporter.logging_queue,
-                post_process,
-            )
-            future.add_done_callback(lambda _: status_reporter.stop_model(model_name))
-            return future
+            cv_path = output_dir / "covervectors" / f"{model_name}_cv.txt"
+            cv_mod_time = cv_path.stat().st_mtime if cv_path.exists() else 0
+
+            source_mod_time = source_file.stat().st_mtime
+
+            tv_comes_from_partial: bool | None = None
+            if tv_path.exists():
+                with tv_path.open("r") as tvs:
+                    first_line = tvs.readline()
+                    tv_comes_from_partial = first_line == PARTIAL_OUTPUT_MESSAGE
+
+            cv_comes_from_partial: bool | None = None
+            if cv_path.exists():
+                with cv_path.open("r") as cvs:
+                    first_line = cvs.readline()
+                    cv_comes_from_partial = first_line == PARTIAL_OUTPUT_MESSAGE
+
+            if (
+                not constants.config.RELEASE
+                and (
+                    (source_mod_time > cv_mod_time)
+                    or (cv_comes_from_partial != (not constants.config.FULL_COVERAGE_TESTGEN))
+                )
+            ) or (
+                (source_mod_time > tv_mod_time)
+                or (tv_comes_from_partial != (not constants.config.FULL_COVERAGE_TESTGEN))
+            ):
+                task_id = status_reporter.start_model(model_name)
+
+                future = executor.submit(
+                    _run_model_by_name,
+                    model_name,
+                    output_dir,
+                    task_id,
+                    status_reporter.logging_queue,
+                    post_process,
+                )
+                future.add_done_callback(lambda _: status_reporter.stop_model(model_name))
+                return future
+
+            return None
 
         GLOBAL_MODELS[model_name] = wrapper
         return wrapper

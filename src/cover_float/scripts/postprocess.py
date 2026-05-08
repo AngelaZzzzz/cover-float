@@ -130,7 +130,8 @@ def postprocess_testvectors(
         for line in test_vectors.readlines():
             parsed = parse_test_vector(line)
             if parsed:
-                readable_vectors.write(format_output(parsed) + "\n")
+                if not constants.config.RELEASE:
+                    readable_vectors.write(format_output(parsed) + "\n")
 
                 if not verify_test_vector(line):
                     logger.exception(
