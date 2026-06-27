@@ -9,149 +9,189 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, any work distributed under the
-// License is distributed on an “AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+// License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
 // either express or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 
-covergroup B24_cg (virtual coverfloat_interface CFI);
+covergroup B25_cg (virtual coverfloat_interface CFI);
+
     option.per_instance = 0;
 
-    //Rounding Mode coverpoint
-    rounding_modes: coverpoint(CFI.rm){
+    CIF_op: coverpoint CFI.op {
         type_option.weight = 0;
-        `include "bins_templates/rounding_modes_bins.svh"
+        bins op_cif = {OP_CIF};
     }
 
-    // Input Precision coverpoints
-    F16_input_fmt: coverpoint (CFI.operandFmt == FMT_HALF) {
+    INT32_operand_fmt: coverpoint (CFI.operandFmt == FMT_INT) {
+        type_option.weight = 0;
+        bins int32 = {1};
+    }
+
+    UINT32_operand_fmt: coverpoint (CFI.operandFmt == FMT_UINT) {
+        type_option.weight = 0;
+        bins uint32 = {1};
+    }
+
+    `ifdef COVER_LONG
+        INT64_operand_fmt: coverpoint (CFI.operandFmt == FMT_LONG) {
+            type_option.weight = 0;
+            bins int64 = {1};
+        }
+
+        UINT64_operand_fmt: coverpoint (CFI.operandFmt == FMT_ULONG) {
+            type_option.weight = 0;
+            bins uint64 = {1};
+        }
+    `endif // COVER_LONG
+
+    F16_result_fmt: coverpoint (CFI.resultFmt == FMT_HALF) {
         type_option.weight = 0;
         bins f16 = {1};
     }
 
-    BF16_input_fmt: coverpoint (CFI.operandFmt == FMT_BF16) {
+    BF16_result_fmt: coverpoint (CFI.resultFmt == FMT_BF16) {
         type_option.weight = 0;
         bins bf16 = {1};
     }
 
-    F32_input_fmt: coverpoint (CFI.operandFmt == FMT_SINGLE) {
+    F32_result_fmt: coverpoint (CFI.resultFmt == FMT_SINGLE) {
         type_option.weight = 0;
         bins f32 = {1};
     }
 
-    F64_input_fmt: coverpoint (CFI.operandFmt == FMT_DOUBLE) {
+    F64_result_fmt: coverpoint (CFI.resultFmt == FMT_DOUBLE) {
         type_option.weight = 0;
         bins f64 = {1};
     }
 
-    F128_input_fmt: coverpoint (CFI.operandFmt == FMT_QUAD) {
+    F128_result_fmt: coverpoint (CFI.resultFmt == FMT_QUAD) {
         type_option.weight = 0;
         bins f128 = {1};
     }
 
-    // Sign coverpoints
-    F16_sign: coverpoint CFI.result[F16_SIGN_BIT] {
+    INT32_special_values: coverpoint CFI.a[31:0] {
         type_option.weight = 0;
-        bins pos = {0};
-        bins neg = {1};
+        bins zero         = {32'h00000000};           // 0
+        bins pos_one      = {32'h00000001};           // +1
+        bins neg_one      = {32'hFFFFFFFF};           // -1 (two's complement)
+        bins pos_maxint   = {32'h7FFFFFFF};           // +MaxInt (2^31 - 1)
+        bins neg_maxint   = {32'h80000000};           // -MaxInt (most negative: -2^31)
+        bins other_values = {[32'h00000002 : 32'h7FFFFFFE],  // Positive values between +1 and +MaxInt
+                             [32'h80000001 : 32'hFFFFFFFE]}; // Negative values between -MaxInt and -1
     }
 
-    BF16_sign: coverpoint CFI.result[BF16_SIGN_BIT] {
+    UINT32_special_values: coverpoint CFI.a[31:0] {
         type_option.weight = 0;
-        bins pos = {0};
-        bins neg = {1};
+        bins zero         = {32'h00000000};           // 0
+        bins pos_one      = {32'h00000001};           // +1
+        bins pos_maxint   = {32'hFFFFFFFF};           // +MaxInt (2^32 - 1)
+        bins other_values = {[32'h00000002 : 32'hFFFFFFFE]}; // Values between +1 and +MaxInt
     }
 
-    F32_sign: coverpoint CFI.result[F32_SIGN_BIT] {
-        type_option.weight = 0;
-        bins pos = {0};
-        bins neg = {1};
-    }
+    `ifdef COVER_LONG
+        INT64_special_values: coverpoint CFI.a[63:0] {
+            type_option.weight = 0;
+            bins zero         = {64'h0000000000000000};           // 0
+            bins pos_one      = {64'h0000000000000001};           // +1
+            bins neg_one      = {64'hFFFFFFFFFFFFFFFF};           // -1 (two's complement)
+            bins pos_maxint   = {64'h7FFFFFFFFFFFFFFF};           // +MaxInt (2^63 - 1)
+            bins neg_maxint   = {64'h8000000000000000};           // -MaxInt (most negative: -2^63)
+            bins other_values = {[64'h0000000000000002 : 64'h7FFFFFFFFFFFFFFE],  // Positive values
+                                 [64'h8000000000000001 : 64'hFFFFFFFFFFFFFFFE]}; // Negative values
+        }
 
-    F64_sign: coverpoint CFI.result[F64_SIGN_BIT] {
-        type_option.weight = 0;
-        bins pos = {0};
-        bins neg = {1};
-    }
+        UINT64_special_values: coverpoint CFI.a[63:0] {
+            type_option.weight = 0;
+            bins zero         = {64'h0000000000000000};           // 0
+            bins pos_one      = {64'h0000000000000001};           // +1
+            bins pos_maxint   = {64'hFFFFFFFFFFFFFFFF};           // +MaxInt (2^64 - 1)
+            bins other_values = {[64'h0000000000000002 : 64'hFFFFFFFFFFFFFFFE]}; // Values between +1 and +MaxInt
+        }
+    `endif // COVER_LONG
 
-    F128_sign: coverpoint CFI.result[F128_SIGN_BIT] {
-        type_option.weight = 0;
-        bins pos = {0};
-        bins neg = {1};
-    }
 
-    // Operation coverpoint
-    FP2INT_op: coverpoint (CFI.op == OP_CFI) {
-        type_option.weight = 0;
-        bins convert_float_int = {1};
-    }
-
-    //Proximity To Zero Coverpoint
-    proximity_to_zero: coverpoint $signed(get_proximity_to_zero(CFI.a, CFI.operandFmt)){
-        type_option.weight = 0;
-        bins zero = {1};
-        bins one_quarter = {2};
-        bins one_half = {3};
-        bins three_quarters = {4};
-        bins one = {5};
-        bins one_and_one_quarter = {6};
-        bins one_and_one_half = {7};
-        bins one_and_three_quarters = {8};
-    }
-
-    //Result format coverpoints
-    result_int32_fmt: coverpoint CFI.resultFmt {
-        type_option.weight = 0;
-
-        bins int32 = {FMT_INT};
-        bins uint32 = {FMT_UINT};
-    }
-
-    result_long64_fmt: coverpoint CFI.resultFmt {
-        type_option.weight = 0;
-
-        bins int64 = {FMT_LONG};
-        bins uint64 = {FMT_ULONG};
-    }
-
-    //Crosses
-    //FMT_HALF
     `ifdef COVER_F16
-        B22_F16_INT: cross rounding_modes, F16_input_fmt, F16_sign, FP2INT_op, proximity_to_zero, result_int32_fmt;
-        `ifdef COVER_LONG
-            B22_F16_LONG: cross rounding_modes, F16_input_fmt, F16_sign, FP2INT_op, proximity_to_zero, result_long64_fmt;
-        `endif
+        B25_INT32_F16: cross CIF_op, INT32_special_values, INT32_operand_fmt, F16_result_fmt;
     `endif
 
-    //FMT_BF16
     `ifdef COVER_BF16
-        B22_BF16_INT: cross rounding_modes, BF16_input_fmt, BF16_sign, FP2INT_op, proximity_to_zero, result_int32_fmt;
-        `ifdef COVER_LONG
-            B22_BF16_LONG: cross rounding_modes, BF16_input_fmt, BF16_sign, FP2INT_op, proximity_to_zero, result_long64_fmt;
-        `endif
+        B25_INT32_BF16: cross CIF_op, INT32_special_values, INT32_operand_fmt, BF16_result_fmt;
     `endif
 
-    //FMT_SINGLE
     `ifdef COVER_F32
-        B22_F32_INT: cross rounding_modes, F32_input_fmt, F32_sign, FP2INT_op, proximity_to_zero, result_int32_fmt;
-        `ifdef COVER_LONG
-            B22_F32_LONG: cross rounding_modes, F32_input_fmt, F32_sign, FP2INT_op, proximity_to_zero, result_long64_fmt;
-        `endif
+        B25_INT32_F32: cross CIF_op, INT32_special_values, INT32_operand_fmt, F32_result_fmt;
     `endif
 
-    //FMT_DOUBLE
     `ifdef COVER_F64
-        B22_F64_INT: cross rounding_modes, F64_input_fmt, F64_sign, FP2INT_op, proximity_to_zero, result_int32_fmt;
-        `ifdef COVER_LONG
-            B22_F64_LONG: cross rounding_modes, F64_input_fmt, F64_sign, FP2INT_op, proximity_to_zero, result_long64_fmt;
-        `endif
+        B25_INT32_F64: cross CIF_op, INT32_special_values, INT32_operand_fmt, F64_result_fmt;
     `endif
 
-    //FMT_QUAD
     `ifdef COVER_F128
-        B22_F128_INT: cross rounding_modes, F128_input_fmt, F128_sign, FP2INT_op, proximity_to_zero, result_int32_fmt;
-        `ifdef COVER_LONG
-            B22_F128_LONG: cross rounding_modes, F128_input_fmt, F128_sign, FP2INT_op, proximity_to_zero, result_long64_fmt;
-        `endif
+        B25_INT32_F128: cross CIF_op, INT32_special_values, INT32_operand_fmt, F128_result_fmt;
     `endif
+
+    `ifdef COVER_F16
+        B25_UINT32_F16: cross CIF_op, UINT32_special_values, UINT32_operand_fmt, F16_result_fmt;
+    `endif
+
+    `ifdef COVER_BF16
+        B25_UINT32_BF16: cross CIF_op, UINT32_special_values, UINT32_operand_fmt, BF16_result_fmt;
+    `endif
+
+    `ifdef COVER_F32
+        B25_UINT32_F32: cross CIF_op, UINT32_special_values, UINT32_operand_fmt, F32_result_fmt;
+    `endif
+
+    `ifdef COVER_F64
+        B25_UINT32_F64: cross CIF_op, UINT32_special_values, UINT32_operand_fmt, F64_result_fmt;
+    `endif
+
+    `ifdef COVER_F128
+        B25_UINT32_F128: cross CIF_op, UINT32_special_values, UINT32_operand_fmt, F128_result_fmt;
+    `endif
+
+    `ifdef COVER_LONG
+        `ifdef COVER_F16
+            B25_INT64_F16: cross CIF_op, INT64_special_values, INT64_operand_fmt, F16_result_fmt;
+        `endif
+
+        `ifdef COVER_BF16
+            B25_INT64_BF16: cross CIF_op, INT64_special_values, INT64_operand_fmt, BF16_result_fmt;
+        `endif
+
+        `ifdef COVER_F32
+            B25_INT64_F32: cross CIF_op, INT64_special_values, INT64_operand_fmt, F32_result_fmt;
+        `endif
+
+        `ifdef COVER_F64
+            B25_INT64_F64: cross CIF_op, INT64_special_values, INT64_operand_fmt, F64_result_fmt;
+        `endif
+
+        `ifdef COVER_F128
+            B25_INT64_F128: cross CIF_op, INT64_special_values, INT64_operand_fmt, F128_result_fmt;
+        `endif
+    `endif // COVER_LONG
+
+    `ifdef COVER_LONG
+        `ifdef COVER_F16
+            B25_UINT64_F16: cross CIF_op, UINT64_special_values, UINT64_operand_fmt, F16_result_fmt;
+        `endif
+
+        `ifdef COVER_BF16
+            B25_UINT64_BF16: cross CIF_op, UINT64_special_values, UINT64_operand_fmt, BF16_result_fmt;
+        `endif
+
+        `ifdef COVER_F32
+            B25_UINT64_F32: cross CIF_op, UINT64_special_values, UINT64_operand_fmt, F32_result_fmt;
+        `endif
+
+        `ifdef COVER_F64
+            B25_UINT64_F64: cross CIF_op, UINT64_special_values, UINT64_operand_fmt, F64_result_fmt;
+        `endif
+
+        `ifdef COVER_F128
+            B25_UINT64_F128: cross CIF_op, UINT64_special_values, UINT64_operand_fmt, F128_result_fmt;
+        `endif
+    `endif // COVER_LONG
 
 endgroup
